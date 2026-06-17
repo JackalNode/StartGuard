@@ -9,8 +9,8 @@
 
 #define AppName "StartGuard"
 #define AppVersion "0.9.0"
-#define AppPublisher "JackalProducts"
-#define AppURL "https://jackalproducts.com"
+#define AppPublisher "JackalNode"
+#define AppURL "https://jackalnode.com"
 #define AppExeName "StartGuard.exe"
 
 ; IMPORTANT: Update this path to match where PyInstaller put your build
@@ -32,11 +32,11 @@ AppUpdatesURL={#AppURL}
 
 ; Where the app installs to by default
 ; {autopf} = C:\Program Files on 64-bit Windows, resolves automatically
-DefaultDirName={autopf}\JackalProducts\StartGuard
-DefaultGroupName=JackalProducts\StartGuard
+DefaultDirName={autopf}\JackalNode\StartGuard
+DefaultGroupName=JackalNode\StartGuard
 
 ; Where the finished installer .exe gets saved after compiling
-OutputDir=C:\Users\natha\OneDrive\Desktop\Project\StartGuard\StartGuard v1\StartGuard\Output
+OutputDir=C:\Users\natha\Desktop\Project\StartGuard\StartGuard v1\StartGuard\Output
 OutputBaseFilename=StartGuard_Setup_v0.9.0
 
 ; Require admin rights to install (needed since the app itself needs admin)
@@ -97,15 +97,15 @@ Type: filesandordirs; Name: "{app}"
 
 ; Also wipe the user's settings from AppData
 ; {localappdata} = C:\Users\YourUsername\AppData\Local
-Type: filesandordirs; Name: "{localappdata}\JackalProducts\StartGuard"
+Type: filesandordirs; Name: "{localappdata}\JackalNode\StartGuard"
 
 ; And roaming AppData just in case anything ended up there
-Type: filesandordirs; Name: "{userappdata}\JackalProducts\StartGuard"
+Type: filesandordirs; Name: "{userappdata}\StartGuard"
 
 [Registry]
 ; Clean up the app's registry entries on uninstall
 ; This removes the single-instance lock port entry if we ever write one
-Root: HKCU; Subkey: "Software\JackalProducts\StartGuard"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\JackalNode\StartGuard"; Flags: uninsdeletekey
 
 [Messages]
 FinishedLabel=StartGuard has been installed successfully.%nUse the Start menu shortcut to open it.

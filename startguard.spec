@@ -32,6 +32,7 @@ a = Analysis(
         ('main_window.py', '.'),                 # Main UI module
         ('settings.py', '.'),                    # Settings module
         ('settings_dialog.py', '.'),             # Settings UI dialog
+        ('updater.py', '.'),                     # Auto-update module
     ],
 
     # Hidden imports — modules PyInstaller sometimes misses with PyQt6
@@ -57,6 +58,8 @@ a = Analysis(
         'charset_normalizer',
         'idna',
         'urllib3',
+        'packaging',
+        'packaging.version',
     ],
 
     # Let PyInstaller auto-discover everything else

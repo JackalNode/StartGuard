@@ -553,6 +553,10 @@ class MainWindow(QMainWindow):
 
         self._build_ui()
 
+        # Check for updates silently in the background
+        from updater import check_for_updates
+        check_for_updates("StartGuard", "0.9.0", "StartGuard", parent=self)
+
     # ─────────────────────────────────────────
     # UI construction
     # ─────────────────────────────────────────
