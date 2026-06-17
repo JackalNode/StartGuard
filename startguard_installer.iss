@@ -8,7 +8,7 @@
 ;   4. Your installer will appear in the Output folder below
 
 #define AppName "StartGuard"
-#define AppVersion "0.9.2"
+#define AppVersion "0.9.3"
 #define AppPublisher "JackalNode"
 #define AppURL "https://jackalnode.com"
 #define AppExeName "StartGuard.exe"
@@ -56,7 +56,7 @@ ArchitecturesInstallIn64BitMode=x64
 
 ; Installer appearance
 WizardStyle=modern
-SetupIconFile=
+SetupIconFile=assets\icon.ico
 
 ; Show a licence/info page? Set to yes if you add a licence file later
 LicenseFile=

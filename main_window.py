@@ -14,6 +14,18 @@ from PyQt6.QtGui import QFont, QColor, QPainter, QBrush, QIcon
 import datetime
 from constants import DISCORD_REPORT_WEBHOOK
 
+import sys
+import os
+
+def resource_path(relative_path):
+    """Get the correct path to a bundled resource, whether running from
+    source code directly or from a PyInstaller-built .exe."""
+    if hasattr(sys, '_MEIPASS'):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
 
 # ─────────────────────────────────────────────
 # Status dot widget — matches PingGuard's PingDot
@@ -547,6 +559,7 @@ class MainWindow(QMainWindow):
         self._disabled_by_user = set()   # Track what we've disabled (for re-enable detection)
 
         self.setWindowTitle("StartGuard")
+        self.setWindowIcon(QIcon(resource_path("assets/icon.ico")))
         self.setMinimumSize(700, 550)
         self.resize(860, 620)
         self.setStyleSheet(self._stylesheet())

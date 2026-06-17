@@ -33,6 +33,7 @@ a = Analysis(
         ('settings.py', '.'),                    # Settings module
         ('settings_dialog.py', '.'),             # Settings UI dialog
         ('updater.py', '.'),                     # Auto-update module
+        ('assets/icon.ico', 'assets'),           # App icon, used for window/taskbar icon at runtime
     ],
 
     # Hidden imports — modules PyInstaller sometimes misses with PyQt6
@@ -108,7 +109,7 @@ exe = EXE(
     # uac_admin=True tells Windows this app needs admin rights
     # This is what triggers the UAC prompt on launch
     uac_admin=True,
-    icon=None,                   # Add icon path here later e.g. 'assets/icon.ico'
+    icon='assets/icon.ico',
 )
 
 coll = COLLECT(
