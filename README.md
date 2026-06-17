@@ -73,5 +73,9 @@ StartGuard is free for personal use and for small businesses. See [LICENSE.txt](
 ---
 
 <p align="center">
+  <img src="assets/jackalnode-logo.png" alt="JackalNode" width="160">
+</p>
+
+<p align="center">
   Made by <a href="https://github.com/JackalNode">JackalNode</a> — putting control back in your hands.
 </p>
