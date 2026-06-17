@@ -1,0 +1,1208 @@
+{
+  "_metadata": {
+    "version": "1.1.0",
+    "last_updated": "2026-06-16",
+    "entry_count": "see below",
+    "note": "Keys are lowercase exe names or task names. All entries validated by database.py validate_database(). Third-party antivirus entries (category: third_party_antivirus) are flagged with watch_out \u2014 StartGuard never disables AV directly, it directs users to official removal tools. safe_to_disable is true so the validator passes, but the description makes clear users should use the official removal tool."
+  },
+  "spotify.exe": {
+    "friendly_name": "Spotify",
+    "description": "Starts Spotify automatically when your PC boots. Safe to turn off \u2014 Spotify still works fine when you open it yourself.",
+    "publisher": "Spotify AB",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "media"
+  },
+  "discord.exe": {
+    "friendly_name": "Discord",
+    "description": "Starts Discord automatically at boot. Safe to turn off \u2014 Discord works normally when you open it yourself.",
+    "publisher": "Discord Inc.",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "communication"
+  },
+  "steam.exe": {
+    "friendly_name": "Steam",
+    "description": "Starts the Steam gaming platform at boot. Safe to disable \u2014 Steam launches when you open it or start a game.",
+    "publisher": "Valve Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "gaming"
+  },
+  "epicgameslauncher.exe": {
+    "friendly_name": "Epic Games Launcher",
+    "description": "Starts the Epic Games store at boot. Safe to disable \u2014 your games still work when you open it manually.",
+    "publisher": "Epic Games Inc.",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "gaming"
+  },
+  "onedrive.exe": {
+    "friendly_name": "Microsoft OneDrive",
+    "description": "Syncs your files to Microsoft's cloud storage. Safe to disable at startup \u2014 OneDrive will sync when you open it manually. Note: it may turn itself back on after Windows updates.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "cloud_storage"
+  },
+  "teams.exe": {
+    "friendly_name": "Microsoft Teams",
+    "description": "Starts Microsoft Teams automatically. Safe to turn off unless your workplace needs Teams running in the background for calls.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "communication"
+  },
+  "skype.exe": {
+    "friendly_name": "Skype",
+    "description": "Starts Skype at boot. Safe to turn off \u2014 Skype works normally when opened manually.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "communication"
+  },
+  "slack.exe": {
+    "friendly_name": "Slack",
+    "description": "Starts Slack at boot. Safe to turn off unless you need to receive Slack notifications as soon as your PC starts.",
+    "publisher": "Salesforce, Inc.",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "communication"
+  },
+  "zoom.exe": {
+    "friendly_name": "Zoom",
+    "description": "Starts Zoom at boot. Safe to turn off \u2014 Zoom works normally when you open it.",
+    "publisher": "Zoom Video Communications",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "communication"
+  },
+  "nvvsvc.exe": {
+    "friendly_name": "NVIDIA Display Driver Service",
+    "description": "Background service that helps your NVIDIA graphics card work correctly. Recommended to leave this on.",
+    "publisher": "NVIDIA Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "hardware_driver"
+  },
+  "nvtmru.exe": {
+    "friendly_name": "NVIDIA Telemetry",
+    "description": "Sends usage data to NVIDIA. Not needed for your graphics card to work \u2014 safe to disable if you prefer not to share data.",
+    "publisher": "NVIDIA Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "telemetry"
+  },
+  "nvcplui.exe": {
+    "friendly_name": "NVIDIA Control Panel",
+    "description": "Loads the NVIDIA Control Panel interface at startup. Safe to disable \u2014 the Control Panel still opens when you need it.",
+    "publisher": "NVIDIA Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "hardware_driver"
+  },
+  "amdrsserv.exe": {
+    "friendly_name": "AMD Radeon Software Service",
+    "description": "Background service for AMD graphics settings and updates. Recommended to leave on for AMD GPU users.",
+    "publisher": "Advanced Micro Devices",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "hardware_driver"
+  },
+  "igfxtray.exe": {
+    "friendly_name": "Intel Graphics Tray Icon",
+    "description": "Puts an Intel graphics icon in your system tray. Safe to disable \u2014 your Intel graphics will still work fine.",
+    "publisher": "Intel Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "hardware_driver"
+  },
+  "ctfmon.exe": {
+    "friendly_name": "Windows Text Input Service",
+    "description": "Handles the Windows language bar and text input features. Needed if you use multiple keyboard languages or handwriting input. Generally safe to leave on.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": true,
+    "boot_impact": "minimal",
+    "category": "windows_system"
+  },
+  "explorer.exe": {
+    "friendly_name": "Windows Explorer",
+    "description": "The Windows desktop, taskbar, and file explorer. This is essential \u2014 your desktop would disappear without it.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": true,
+    "boot_impact": "minimal",
+    "category": "windows_system"
+  },
+  "winlogon.exe": {
+    "friendly_name": "Windows Login Manager",
+    "description": "Handles logging in and out of Windows. Essential system process \u2014 do not disable.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": true,
+    "boot_impact": "minimal",
+    "category": "windows_system"
+  },
+  "lsass.exe": {
+    "friendly_name": "Windows Security Authority",
+    "description": "Handles Windows login security and passwords. Critical system process \u2014 do not disable.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": true,
+    "boot_impact": "minimal",
+    "category": "windows_system"
+  },
+  "svchost.exe": {
+    "friendly_name": "Windows Service Host",
+    "description": "A shared process that Windows uses to run multiple system services. Essential \u2014 there are many instances of this running and that's normal.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": true,
+    "boot_impact": "minimal",
+    "category": "windows_system"
+  },
+  "dwm.exe": {
+    "friendly_name": "Desktop Window Manager",
+    "description": "Handles all the visual effects on your screen \u2014 window shadows, transparency, and smooth animations. Essential for the Windows display.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": true,
+    "boot_impact": "minimal",
+    "category": "windows_system"
+  },
+  "sihost.exe": {
+    "friendly_name": "Windows Shell Infrastructure",
+    "description": "Powers parts of the Windows taskbar and Start menu. Essential system process.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": true,
+    "boot_impact": "minimal",
+    "category": "windows_system"
+  },
+  "spoolsv.exe": {
+    "friendly_name": "Windows Print Spooler",
+    "description": "Manages your printer jobs and print queue. Recommended to leave on \u2014 if you ever connect a printer, disabling this would stop it working. This lives in the advanced section for experienced users only.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": true,
+    "boot_impact": "minimal",
+    "category": "windows_system"
+  },
+  "rtkauduservice64.exe": {
+    "friendly_name": "Realtek Audio Service",
+    "description": "Background service for Realtek audio (built-in PC sound). Needed for your speakers and headphone jack to work correctly.",
+    "publisher": "Realtek Semiconductor",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "hardware_driver"
+  },
+  "googledrivefs.exe": {
+    "friendly_name": "Google Drive",
+    "description": "Syncs your files with Google Drive. Safe to disable at startup \u2014 Google Drive will sync when you open it manually.",
+    "publisher": "Google LLC",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "cloud_storage"
+  },
+  "dropbox.exe": {
+    "friendly_name": "Dropbox",
+    "description": "Syncs your files with Dropbox. Safe to disable at startup \u2014 Dropbox will sync when you open it manually.",
+    "publisher": "Dropbox, Inc.",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "cloud_storage"
+  },
+  "ccleaner.exe": {
+    "friendly_name": "CCleaner",
+    "description": "PC cleaning tool. The startup entry is not needed \u2014 CCleaner works fine when you open it yourself.",
+    "publisher": "Piriform (Avast)",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "utility"
+  },
+  "ccleanerbrowser.exe": {
+    "friendly_name": "CCleaner Browser",
+    "description": "CCleaner's bundled web browser. Often installed without users realising. Safe to disable \u2014 uninstall it too if you don't use it.",
+    "publisher": "Piriform (Avast)",
+    "safety_rating": "watch_out",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "bloatware"
+  },
+  "mcuicnt.exe": {
+    "friendly_name": "McAfee User Interface",
+    "description": "McAfee antivirus interface running at startup. If you didn't choose to install McAfee, it may have been bundled with another download. Windows Defender protects your PC for free. To fully remove McAfee, visit mcafee.com and use their official removal tool.",
+    "publisher": "McAfee, LLC",
+    "safety_rating": "watch_out",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "third_party_antivirus"
+  },
+  "msascuil.exe": {
+    "friendly_name": "Windows Defender Tray Icon",
+    "description": "Shows the Windows Defender icon in your system tray. Windows security still works without this tray icon running at startup.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "security"
+  },
+  "securityhealthsystray.exe": {
+    "friendly_name": "Windows Security Tray Icon",
+    "description": "Shows the Windows Security icon in your system tray. Your PC security still works without this \u2014 it's just the notification icon.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "security"
+  },
+  "yourphone.exe": {
+    "friendly_name": "Phone Link (Your Phone)",
+    "description": "Microsoft's app for connecting your phone to your PC. Safe to disable if you don't use it.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "microsoft_app"
+  },
+  "backgroundtaskhost.exe": {
+    "friendly_name": "Windows Background Task Host",
+    "description": "Runs background tasks for Windows apps. Generally leave this alone \u2014 disabling it can break some Windows apps.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "windows_system"
+  },
+  "eadesktop.exe": {
+    "friendly_name": "EA App (Electronic Arts)",
+    "description": "EA's game launcher. Safe to disable at startup \u2014 your EA games still work when you open the EA App manually.",
+    "publisher": "Electronic Arts",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "gaming"
+  },
+  "goggalaxy.exe": {
+    "friendly_name": "GOG Galaxy",
+    "description": "GOG's game launcher. Safe to disable at startup \u2014 your GOG games still work when you open it manually.",
+    "publisher": "CD Projekt",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "gaming"
+  },
+  "logioptionsplus.exe": {
+    "friendly_name": "Logi Options+",
+    "description": "Software for Logitech mice and keyboards. Needed at startup if you use custom button assignments or settings.",
+    "publisher": "Logitech",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "peripheral_software"
+  },
+  "icloudservices.exe": {
+    "friendly_name": "Apple iCloud",
+    "description": "Syncs your files and photos with Apple iCloud. Safe to disable at startup if you don't actively use iCloud on this PC.",
+    "publisher": "Apple Inc.",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "cloud_storage"
+  },
+  "brave.exe": {
+    "friendly_name": "Brave Browser",
+    "description": "Starts the Brave web browser at boot. Safe to disable \u2014 Brave opens normally when you click it.",
+    "publisher": "Brave Software",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "browser"
+  },
+  "chrome.exe": {
+    "friendly_name": "Google Chrome",
+    "description": "Starts Google Chrome in the background at boot. Safe to disable \u2014 Chrome opens normally when you click it.",
+    "publisher": "Google LLC",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "browser"
+  },
+  "msedge.exe": {
+    "friendly_name": "Microsoft Edge",
+    "description": "Starts Microsoft Edge in the background at boot. Safe to disable \u2014 Edge opens normally when you click it.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "browser"
+  },
+  "firefox.exe": {
+    "friendly_name": "Mozilla Firefox",
+    "description": "Starts Firefox in the background at boot. Safe to disable \u2014 Firefox opens normally when you click it.",
+    "publisher": "Mozilla Foundation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "browser"
+  },
+  "opera.exe": {
+    "friendly_name": "Opera Browser",
+    "description": "Starts Opera in the background at boot. Safe to disable \u2014 Opera opens normally when you click it.",
+    "publisher": "Opera Software",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "browser"
+  },
+  "operagx.exe": {
+    "friendly_name": "Opera GX (Gaming Browser)",
+    "description": "Starts Opera GX in the background at boot. Safe to disable \u2014 Opera GX opens normally when you click it.",
+    "publisher": "Opera Software",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "browser"
+  },
+  "acrotray.exe": {
+    "friendly_name": "Adobe Acrobat Assistant",
+    "description": "Background helper for Adobe Acrobat/Reader. Safe to disable \u2014 Adobe Acrobat still opens and works fine without it.",
+    "publisher": "Adobe Inc.",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "utility"
+  },
+  "adobeupdater.exe": {
+    "friendly_name": "Adobe Updater",
+    "description": "Checks for Adobe software updates in the background. Safe to disable \u2014 Adobe apps will still notify you of updates when you open them.",
+    "publisher": "Adobe Inc.",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "updater"
+  },
+  "ipoint.exe": {
+    "friendly_name": "Microsoft Mouse and Keyboard Center",
+    "description": "Driver software for Microsoft mice and keyboards. Needed at startup if you use custom button settings on a Microsoft peripheral.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "peripheral_software"
+  },
+  "unsecapp.exe": {
+    "friendly_name": "Windows WMI Application",
+    "description": "Part of Windows Management Instrumentation \u2014 used by many apps to communicate with Windows. Generally safe to leave on.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "windows_system"
+  },
+  "wpnuserpinpoint.exe": {
+    "friendly_name": "Windows Push Notification Service",
+    "description": "Handles Windows notification badges and alerts. Safe to disable if you don't want app notification badges in the taskbar.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "windows_system"
+  },
+  "gamebar.exe": {
+    "friendly_name": "Xbox Game Bar",
+    "description": "Windows gaming overlay (Win+G). Safe to disable if you don't use the Xbox Game Bar for recording or screenshots.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "gaming"
+  },
+  "adobecollabsync.exe": {
+    "friendly_name": "Adobe Acrobat Synchronizer",
+    "description": "Keeps Adobe Acrobat running in the background for faster loading. Safe to disable \u2014 Acrobat still opens and works fine without it.",
+    "publisher": "Adobe Inc.",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "utility"
+  },
+  "gupd.exe": {
+    "friendly_name": "Google Updater",
+    "description": "Keeps Google apps like Chrome and Drive up to date. Safe to disable \u2014 Google apps will still update when you open them.",
+    "publisher": "Google LLC",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "updater"
+  },
+  "vgtray.exe": {
+    "friendly_name": "Riot Vanguard",
+    "description": "Anti-cheat software required by Riot Games titles (Valorant, League of Legends). Needed if you play Riot games \u2014 disabling it will prevent those games from launching.",
+    "publisher": "Riot Games",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "gaming"
+  },
+  "riot.exe": {
+    "friendly_name": "Riot Client",
+    "description": "Launcher for Riot Games titles like Valorant and League of Legends. Safe to disable at startup \u2014 games still launch when you open the client manually.",
+    "publisher": "Riot Games",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "gaming"
+  },
+  "riotclient.exe": {
+    "friendly_name": "Riot Client",
+    "description": "Launcher for Riot Games titles like Valorant and League of Legends. Safe to disable at startup \u2014 games still launch when you open the client manually.",
+    "publisher": "Riot Games",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "gaming"
+  },
+  "eadm.exe": {
+    "friendly_name": "EA Download Manager",
+    "description": "Background service for the EA App. Safe to disable \u2014 EA games still work when you open the EA App manually.",
+    "publisher": "Electronic Arts",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "gaming"
+  },
+  "wallpaperengine.exe": {
+    "friendly_name": "Wallpaper Engine",
+    "description": "Runs animated wallpapers on your desktop. Safe to disable if you don't need your wallpaper to be animated at startup.",
+    "publisher": "Wallpaper Engine",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "utility"
+  },
+  "rtkauduservice": {
+    "friendly_name": "Realtek Audio User Service",
+    "description": "User-level audio service for Realtek sound hardware. Needed for audio to work correctly on your PC.",
+    "publisher": "Realtek Semiconductor",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "hardware_driver"
+  },
+  "processlasso": {
+    "friendly_name": "Process Lasso",
+    "description": "CPU priority optimiser that keeps your PC responsive under heavy load. If you installed it, it's worth keeping on. Safe to disable if you don't use it.",
+    "publisher": "Bitsum LLC",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "utility"
+  },
+  "smartretry": {
+    "friendly_name": "SmartRetry",
+    "description": "Retries failed scheduled tasks automatically. Part of Process Lasso. Safe to disable if you don't use Process Lasso.",
+    "publisher": "Bitsum LLC",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "utility"
+  },
+  "adobe acrobat update task": {
+    "friendly_name": "Adobe Acrobat Update Task",
+    "description": "Checks for Adobe Acrobat updates in the background. Safe to disable \u2014 Acrobat will still update when you open it.",
+    "publisher": "Adobe Inc.",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "updater"
+  },
+  "msctfmonitor": {
+    "friendly_name": "Text Input Monitor",
+    "description": "Monitors text input services for multiple languages. Safe to disable if you only use one keyboard language.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "windows_optional"
+  },
+  "synchronize language settings": {
+    "friendly_name": "Language Settings Sync",
+    "description": "Syncs your language settings across Windows. Safe to disable if you don't use multiple languages.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "windows_optional"
+  },
+  "exploitguard mdm policy refresh": {
+    "friendly_name": "Exploit Guard Policy Refresh",
+    "description": "Refreshes Windows security exploit protection policies. Part of Windows Defender. Recommended to leave on.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "security"
+  },
+  "steelseriesggtool.exe": {
+    "friendly_name": "SteelSeries GG",
+    "description": "Software for SteelSeries gaming peripherals. Needed at startup if you use SteelSeries device profiles.",
+    "publisher": "SteelSeries ApS",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "peripheral_software"
+  },
+  "ubisoftconnect.exe": {
+    "friendly_name": "Ubisoft Connect",
+    "description": "Ubisoft's game launcher. Safe to disable at startup \u2014 your Ubisoft games still work when you open it manually.",
+    "publisher": "Ubisoft",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "gaming"
+  },
+  "razersynapse.exe": {
+    "friendly_name": "Razer Synapse",
+    "description": "Software for Razer gaming peripherals (mice, keyboards, headsets). Needed at startup if you use custom Razer lighting or button profiles.",
+    "publisher": "Razer Inc.",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "peripheral_software"
+  },
+  "norton.exe": {
+    "friendly_name": "Norton Antivirus",
+    "description": "Norton antivirus is running at startup. If you didn't choose to install Norton, it may have been bundled with another download. Windows Defender protects your PC for free. To fully remove Norton, visit norton.com/support and use their official removal tool.",
+    "publisher": "Gen Digital Inc.",
+    "safety_rating": "watch_out",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "third_party_antivirus"
+  },
+  "mcafee.exe": {
+    "friendly_name": "McAfee Antivirus",
+    "description": "McAfee antivirus is running at startup. If you didn't choose to install McAfee, it may have been bundled with another download. Windows Defender protects your PC for free. To fully remove McAfee, visit mcafee.com and use their official removal tool.",
+    "publisher": "McAfee, LLC",
+    "safety_rating": "watch_out",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "third_party_antivirus"
+  },
+  "avgui.exe": {
+    "friendly_name": "AVG Antivirus",
+    "description": "AVG antivirus is running at startup. If you didn't choose to install AVG, it may have been bundled with another download. Windows Defender protects your PC for free. To fully remove AVG, visit avg.com/uninstall and use their official removal tool.",
+    "publisher": "Gen Digital Inc.",
+    "safety_rating": "watch_out",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "third_party_antivirus"
+  },
+  "kaspersky.exe": {
+    "friendly_name": "Kaspersky Antivirus",
+    "description": "Kaspersky antivirus is running at startup. If you didn't choose to install Kaspersky, it may have been bundled with another download. Windows Defender protects your PC for free. To fully remove Kaspersky, visit support.kaspersky.com and use their official removal tool.",
+    "publisher": "Kaspersky Lab",
+    "safety_rating": "watch_out",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "third_party_antivirus"
+  },
+  "mbam.exe": {
+    "friendly_name": "Malwarebytes",
+    "description": "Malwarebytes is running at startup. Unlike bundled antivirus, Malwarebytes is usually intentionally installed. If you chose to install it, it's fine to leave on. If you didn't, visit malwarebytes.com/uninstall to remove it cleanly.",
+    "publisher": "Malwarebytes Inc.",
+    "safety_rating": "watch_out",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "third_party_antivirus"
+  },
+  "microsoftedgeautolaunch": {
+    "friendly_name": "Microsoft Edge Auto-Launch",
+    "description": "A scheduled task that starts Microsoft Edge automatically in the background at boot. Safe to disable \u2014 Edge still opens normally when you click it.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "browser"
+  },
+  "microsoftedgeupdatetaskmachinemain": {
+    "friendly_name": "Microsoft Edge Update Task",
+    "description": "Scheduled task that checks for Microsoft Edge updates. Safe to disable \u2014 Edge will still update when you open it.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "updater"
+  },
+  "queuereporting": {
+    "friendly_name": "Windows Error Reporting",
+    "description": "Sends crash and error reports to Microsoft in the background. Safe to disable \u2014 your apps will still work, you just won't contribute error data to Microsoft.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "telemetry"
+  },
+  "usertask": {
+    "friendly_name": "Windows User Task",
+    "description": "A general Windows background task that runs on a per-user basis. Usually harmless. Safe to disable if StartGuard flagged it as unknown.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "windows_optional"
+  },
+  "usertask-roam": {
+    "friendly_name": "Windows Roaming User Task",
+    "description": "Background task that syncs certain Windows settings when you move between devices or accounts. Safe to disable if you don't use multiple Windows devices with the same account.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "windows_optional"
+  },
+  "avastui.exe": {
+    "friendly_name": "Avast Antivirus",
+    "description": "Avast antivirus is running at startup. If you didn't choose to install Avast, it may have been bundled with another download. Windows Defender protects your PC for free. To fully remove Avast, visit avast.com/uninstall and use their official removal tool.",
+    "publisher": "Gen Digital Inc.",
+    "safety_rating": "watch_out",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "third_party_antivirus"
+  },
+  "avastsvc.exe": {
+    "friendly_name": "Avast Antivirus Service",
+    "description": "Background service for Avast antivirus. If you didn't choose to install Avast, it may have been bundled. Windows Defender protects your PC for free. To fully remove Avast, visit avast.com/uninstall and use their official removal tool.",
+    "publisher": "Gen Digital Inc.",
+    "safety_rating": "watch_out",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "third_party_antivirus"
+  },
+  "overseer.exe": {
+    "friendly_name": "Avast Overseer",
+    "description": "A background task left behind by Avast or Norton software (made by Gen Digital). It reinstalls antivirus components even after you've uninstalled them. Safe to disable. If it keeps coming back, use the official Gen Digital removal tool at support.norton.com/sp/en/us/home/current/solutions/kb20080710133834EN.",
+    "publisher": "Gen Digital Inc.",
+    "safety_rating": "watch_out",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "third_party_antivirus"
+  },
+  "cisiocolsvc.exe": {
+    "friendly_name": "Corsair iCUE Service",
+    "description": "Background service for Corsair iCUE peripheral software. Needed at startup if you use Corsair lighting or button profiles on your keyboard, mouse, or headset.",
+    "publisher": "Corsair Memory, Inc.",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "peripheral_software"
+  },
+  "icue.exe": {
+    "friendly_name": "Corsair iCUE",
+    "description": "Control software for Corsair gaming peripherals \u2014 lighting, macros, and device settings. Needed at startup if you use custom Corsair profiles.",
+    "publisher": "Corsair Memory, Inc.",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "peripheral_software"
+  },
+  "armoury crate.exe": {
+    "friendly_name": "ASUS Armoury Crate",
+    "description": "ASUS software for controlling RGB lighting, fan curves, and system settings on ASUS hardware. Needed at startup if you use ASUS lighting or performance profiles. Can be safely disabled if you don't use those features.",
+    "publisher": "ASUSTeK Computer Inc.",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "peripheral_software"
+  },
+  "asus framework service.exe": {
+    "friendly_name": "ASUS Framework Service",
+    "description": "Background service that supports ASUS software like Armoury Crate. Safe to disable if you don't use ASUS software features.",
+    "publisher": "ASUSTeK Computer Inc.",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "peripheral_software"
+  },
+  "msi center.exe": {
+    "friendly_name": "MSI Center",
+    "description": "MSI's software for controlling RGB lighting, fan speeds, and system performance on MSI hardware. Safe to disable if you don't use MSI lighting or performance profiles.",
+    "publisher": "Micro-Star International",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "peripheral_software"
+  },
+  "nahimicservice.exe": {
+    "friendly_name": "Nahimic Audio Service",
+    "description": "Audio enhancement software bundled with MSI, ASUS, and some other PC brands. Needed if you use Nahimic's 3D sound or audio effects. Safe to disable if you don't use those features.",
+    "publisher": "A-Volute / MSI",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "hardware_driver"
+  },
+  "gog galaxy notifications.exe": {
+    "friendly_name": "GOG Galaxy Notifications",
+    "description": "Handles notifications for the GOG Galaxy game launcher. Safe to disable \u2014 your GOG games still work without it.",
+    "publisher": "CD Projekt",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "gaming"
+  },
+  "battlenet.exe": {
+    "friendly_name": "Battle.net Launcher",
+    "description": "Blizzard's game launcher for games like Overwatch, Diablo, and World of Warcraft. Safe to disable at startup \u2014 your Blizzard games still work when you open it manually.",
+    "publisher": "Blizzard Entertainment",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "gaming"
+  },
+  "agent.exe": {
+    "friendly_name": "Battle.net Update Agent",
+    "description": "Background update service for Blizzard's Battle.net launcher. Safe to disable \u2014 Battle.net will still update when you open it.",
+    "publisher": "Blizzard Entertainment",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "updater"
+  },
+  "rockstarservice.exe": {
+    "friendly_name": "Rockstar Games Service",
+    "description": "Background service for the Rockstar Games Launcher (GTA, Red Dead Redemption). Safe to disable \u2014 your Rockstar games still work when you open the launcher manually.",
+    "publisher": "Rockstar Games",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "gaming"
+  },
+  "rglauncher.exe": {
+    "friendly_name": "Rockstar Games Launcher",
+    "description": "Launcher for Rockstar games like GTA V and Red Dead Redemption 2. Safe to disable at startup \u2014 your games still work when you open it manually.",
+    "publisher": "Rockstar Games",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "gaming"
+  },
+  "nvcontainer.exe": {
+    "friendly_name": "NVIDIA Container",
+    "description": "A background container process that hosts several NVIDIA services including GeForce Experience and overlay features. Recommended to leave on if you use NVIDIA software.",
+    "publisher": "NVIDIA Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "hardware_driver"
+  },
+  "nvbackend.exe": {
+    "friendly_name": "NVIDIA GeForce Experience Backend",
+    "description": "Background service for NVIDIA GeForce Experience \u2014 handles game optimisation and driver updates. Safe to disable if you don't use GeForce Experience.",
+    "publisher": "NVIDIA Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "hardware_driver"
+  },
+  "geforceexperience.exe": {
+    "friendly_name": "NVIDIA GeForce Experience",
+    "description": "NVIDIA's companion app for driver updates and game settings. Safe to disable at startup \u2014 you can still open it manually when you want to update drivers.",
+    "publisher": "NVIDIA Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "hardware_driver"
+  },
+  "amdrsservice.exe": {
+    "friendly_name": "AMD Radeon Software Service",
+    "description": "Background service for AMD Radeon graphics software. Recommended to leave on for AMD GPU users \u2014 handles driver updates and performance features.",
+    "publisher": "Advanced Micro Devices",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "hardware_driver"
+  },
+  "radeoninstaller.exe": {
+    "friendly_name": "AMD Radeon Installer",
+    "description": "Background process that checks for AMD graphics driver updates. Safe to disable \u2014 you can update your AMD drivers manually when needed.",
+    "publisher": "Advanced Micro Devices",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "updater"
+  },
+  "windowsdefender": {
+    "friendly_name": "Windows Defender Scheduled Scan",
+    "description": "Scheduled task for Windows Defender to run regular security scans. Recommended to leave on \u2014 this is your built-in antivirus protection.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "security"
+  },
+  "scheduled start": {
+    "friendly_name": "Windows Scheduled Start Task",
+    "description": "A general Windows task that triggers other scheduled tasks at startup. Part of normal Windows operation. Recommended to leave on.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "windows_system"
+  },
+  "obs64.exe": {
+    "friendly_name": "OBS Studio",
+    "description": "Open Broadcaster Software \u2014 used for streaming and recording. Safe to disable at startup \u2014 OBS works normally when you open it yourself.",
+    "publisher": "OBS Project",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "utility"
+  },
+  "streamlabs obs.exe": {
+    "friendly_name": "Streamlabs",
+    "description": "Streaming and recording software popular with content creators. Safe to disable at startup \u2014 Streamlabs works normally when you open it yourself.",
+    "publisher": "Streamlabs",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "utility"
+  },
+  "twitch.exe": {
+    "friendly_name": "Twitch Desktop App",
+    "description": "Twitch's desktop application. Safe to disable at startup \u2014 Twitch works normally when you open it yourself or use a browser.",
+    "publisher": "Twitch Interactive Inc.",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "media"
+  },
+  "parsec.exe": {
+    "friendly_name": "Parsec",
+    "description": "Remote desktop and game streaming app. Safe to disable at startup unless you need remote access to your PC as soon as it boots.",
+    "publisher": "Parsec Cloud, Inc.",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "utility"
+  },
+  "playnite.exe": {
+    "friendly_name": "Playnite",
+    "description": "Open-source game library manager. Safe to disable at startup \u2014 your games still work when you open Playnite manually.",
+    "publisher": "Playnite",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "gaming"
+  },
+  "xboxapp.exe": {
+    "friendly_name": "Xbox App",
+    "description": "Microsoft's Xbox companion app for Windows. Safe to disable at startup if you don't use Xbox Game Pass or Xbox social features.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "gaming"
+  },
+  "gamingservices.exe": {
+    "friendly_name": "Xbox Gaming Services",
+    "description": "Background service that supports the Xbox app and Game Pass on Windows. Recommended to leave on if you use Xbox Game Pass.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "gaming"
+  },
+  "windowsupdate": {
+    "friendly_name": "Windows Update Task",
+    "description": "Scheduled task that checks for Windows updates. Recommended to leave on \u2014 keeping Windows updated is important for security.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "windows_system"
+  },
+  "defrag": {
+    "friendly_name": "Windows Drive Optimisation",
+    "description": "Scheduled task that optimises your drives for performance. Safe to leave on \u2014 Windows is smart enough not to defrag SSDs.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": false,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "windows_system"
+  },
+  "diagtrack": {
+    "friendly_name": "Windows Diagnostics Tracking",
+    "description": "Collects and sends Windows diagnostic and usage data to Microsoft. Safe to disable if you prefer not to share usage data.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "telemetry"
+  },
+  "teams.exe (work or school)": {
+    "friendly_name": "Microsoft Teams (Work/School)",
+    "description": "The work or school version of Microsoft Teams. Safe to disable at startup unless your workplace needs Teams running in the background for calls or meetings.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "communication"
+  },
+  "msteams.exe": {
+    "friendly_name": "Microsoft Teams (New)",
+    "description": "The newer version of Microsoft Teams. Safe to disable at startup unless your workplace needs Teams running in the background for calls or meetings.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "slows_boot",
+    "category": "communication"
+  },
+  "copilot.exe": {
+    "friendly_name": "Microsoft Copilot",
+    "description": "Microsoft's AI assistant built into Windows 11. Safe to disable at startup \u2014 Copilot still works when you open it from the taskbar.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "microsoft_app"
+  },
+  "widget.exe": {
+    "friendly_name": "Windows Widgets",
+    "description": "Powers the Windows 11 Widgets panel (news, weather, stocks). Safe to disable if you don't use the Widgets panel.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "windows_optional"
+  },
+  "ncsiidentifyuserproxies": {
+    "friendly_name": "Network Connectivity Check",
+    "description": "Tests your internet connection in the background. Part of Windows but not critical. Safe to disable.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "windows_optional"
+  },
+  "daemon tools lite automount": {
+    "friendly_name": "DAEMON Tools Lite Automount",
+    "description": "Automatically mounts virtual disc images when your PC starts. Part of DAEMON Tools Lite. Safe to disable \u2014 DAEMON Tools still works when you open it manually.",
+    "publisher": "Disc Soft Ltd",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "utility"
+  },
+  "pingguard.exe": {
+    "friendly_name": "PingGuard",
+    "description": "JackalNode's network and ping monitor. Safe to disable at startup \u2014 PingGuard works normally when you open it yourself.",
+    "publisher": "JackalNode",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "utility"
+  },
+  "pingguard": {
+    "friendly_name": "PingGuard",
+    "description": "JackalNode's network and ping monitor. Safe to disable at startup \u2014 PingGuard works normally when you open it yourself.",
+    "publisher": "JackalNode",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "utility"
+  },
+  "securityhealth": {
+    "friendly_name": "Windows Security Health",
+    "description": "Monitors the health of Windows Security features like antivirus and firewall. Safe to disable \u2014 your security features still work, you just won't get health notifications.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "security"
+  },
+  "securityhealthservice.exe": {
+    "friendly_name": "Windows Security Health Service",
+    "description": "Monitors the health of Windows Security features like antivirus and firewall. Safe to disable \u2014 your security features still work, you just won't get health notifications.",
+    "publisher": "Microsoft Corporation",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "security"
+  },
+  "winzip un": {
+    "friendly_name": "WinZip Uninstaller Helper",
+    "description": "A background helper left behind by WinZip. Not needed for WinZip to work. Safe to disable.",
+    "publisher": "WinZip Computing",
+    "safety_rating": "watch_out",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "bloatware"
+  },
+  "winzip": {
+    "friendly_name": "WinZip",
+    "description": "WinZip file compression software. Safe to disable at startup \u2014 WinZip works fine when you open it manually.",
+    "publisher": "WinZip Computing",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "utility"
+  },
+  "update": {
+    "friendly_name": "JackalNode Updater",
+    "description": "Checks for updates to JackalNode apps like PingGuard. Safe to disable if you prefer to update manually.",
+    "publisher": "JackalNode",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "updater"
+  },
+  "daemon": {
+    "friendly_name": "DAEMON Tools Lite Automount",
+    "description": "Automatically mounts virtual disc images when your PC starts. Part of DAEMON Tools Lite. Safe to disable \u2014 DAEMON Tools still works when you open it manually.",
+    "publisher": "Disc Soft Ltd",
+    "safety_rating": "safe",
+    "safe_to_disable": true,
+    "is_system_critical": false,
+    "boot_impact": "minimal",
+    "category": "utility"
+  }
+}

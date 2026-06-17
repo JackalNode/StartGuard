@@ -1,0 +1,26 @@
+# Secret files - never commit these
+constants.py
+
+# Python build artifacts
+__pycache__/
+*.py[cod]
+*.spec.bak
+
+# PyInstaller build output
+dist/
+build/
+
+# Inno Setup output
+Output/
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor folders
+.vscode/
+.idea/
+
+# Secrets / local config
+*.env

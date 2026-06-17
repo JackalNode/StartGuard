@@ -1,0 +1,90 @@
+JackalNode Software Licence
+Version 1.0
+
+Copyright (c) 2025 JackalNode. All rights reserved.
+
+---
+
+PLAIN ENGLISH SUMMARY
+---------------------
+Free for personal use, always.
+Free for small businesses and indie teams.
+Big organisations need to ask first.
+You cannot resell or repackage this software.
+
+---
+
+1. PERSONAL USE
+
+You may use, copy, and share this software for personal,
+non-commercial purposes at no cost, forever.
+
+No subscriptions. No licence keys. No expiry dates.
+
+---
+
+2. SMALL BUSINESS AND STARTUP USE
+
+You may use this software free of charge if your organisation
+meets ALL of the following:
+
+  - Fewer than 10 employees or contractors, AND
+  - Annual revenue or funding under £100,000 (or equivalent)
+
+If you outgrow these limits, you need a commercial licence
+(see Section 4).
+
+---
+
+3. WHAT YOU CANNOT DO
+
+Regardless of your size or purpose, you may not:
+
+  - Sell this software, or charge others for access to it
+  - Repackage or redistribute it under a different name
+  - White-label it as your own product
+  - Remove or alter copyright notices or licence text
+  - Use it as part of a commercial product or service
+    without written permission
+
+---
+
+4. COMMERCIAL USE (LARGER ORGANISATIONS)
+
+If you are an organisation that does not qualify under
+Section 2, you must contact us before using this software.
+
+We are open to licensing arrangements. We just want to know.
+
+Contact: [nathan.louter25@gmail.com]
+
+---
+
+5. CONTRIBUTIONS
+
+If you submit code, fixes, or improvements to this project,
+you agree that your contributions are made under the same
+terms as this licence and that JackalNode may include them
+in the software.
+
+---
+
+6. NO WARRANTY
+
+This software is provided as-is, with no guarantees of any
+kind. Use it at your own risk.
+
+JackalNode is not liable for any damage, data loss, or
+problems caused by using this software.
+
+---
+
+7. GOVERNING LAW
+
+This licence is governed by the laws of South Africa.
+Any disputes will be resolved under South African jurisdiction.
+
+---
+
+If anything here is unclear, just ask.
+jackalnode.com
