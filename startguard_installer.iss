@@ -15,7 +15,7 @@
 
 ; IMPORTANT: Update this path to match where PyInstaller put your build
 ; After running pyinstaller startguard.spec, the built files will be here:
-#define SourceDir "C:\Users\natha\Desktop\Project\StartGuard\StartGuard v1\StartGuard\dist\StartGuard"
+#define SourceDir SourcePath + "dist\StartGuard"
 
 [Setup]
 ; Unique ID for this app — DO NOT change this after first release
@@ -36,7 +36,7 @@ DefaultDirName={autopf}\JackalNode\StartGuard
 DefaultGroupName=JackalNode\StartGuard
 
 ; Where the finished installer .exe gets saved after compiling
-OutputDir=C:\Users\natha\Desktop\Project\StartGuard\StartGuard v1\StartGuard\Output
+OutputDir={#SourcePath}Output
 OutputBaseFilename=StartGuard_Setup_v0.9.0
 
 ; Require admin rights to install (needed since the app itself needs admin)
