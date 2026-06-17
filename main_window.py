@@ -555,7 +555,7 @@ class MainWindow(QMainWindow):
 
         # Check for updates silently in the background
         from updater import check_for_updates
-        check_for_updates("StartGuard", "0.9.0", "StartGuard", parent=self)
+        check_for_updates("StartGuard", QApplication.instance().applicationVersion(), "StartGuard", parent=self)
 
     # ─────────────────────────────────────────
     # UI construction
