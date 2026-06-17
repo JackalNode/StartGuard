@@ -1,0 +1,75 @@
+name: Build and Release StartGuard
+
+# Triggers automatically when you push a tag like v1.0.0
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+
+      # Step 1: Pull the repo code onto the build machine
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Install Python 3.11 (stable, well tested with PyQt6)
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # Step 3: Install all dependencies from requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Step 4: Create a temporary constants.py using the secret stored in GitHub
+      # This replaces the real constants.py which is gitignored for security
+      - name: Create constants.py from secret
+        run: |
+          echo "DISCORD_REPORT_WEBHOOK = '${{ secrets.DISCORD_REPORT_WEBHOOK }}'" > constants.py
+        shell: bash
+
+      # Step 5: Build the exe using your existing startguard.spec
+      - name: Build exe with PyInstaller
+        run: |
+          python -m PyInstaller startguard.spec
+
+      # Step 6: Build the installer using your existing Inno Setup script
+      # Inno Setup is pre-installed on windows-latest — no install needed
+      # We override the OutputDir to a known location so we can find the file
+      - name: Build installer with Inno Setup
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" startguard_installer.iss /DOutputDir=Output
+        shell: pwsh
+
+      # Step 7: Find the installer file that was just built
+      - name: Find installer file
+        id: find_installer
+        run: |
+          $installer = Get-ChildItem -Path "Output" -Filter "*.exe" | Select-Object -First 1
+          echo "INSTALLER_PATH=Output\$($installer.Name)" >> $env:GITHUB_OUTPUT
+          echo "INSTALLER_NAME=$($installer.Name)" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      # Step 8: Create a GitHub Release and attach the installer to it
+      - name: Create GitHub Release and upload installer
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.find_installer.outputs.INSTALLER_PATH }}
+          name: StartGuard ${{ github.ref_name }}
+          body: |
+            ## StartGuard ${{ github.ref_name }}
+
+            Download the installer below to get started.
+
+            **File:** ${{ steps.find_installer.outputs.INSTALLER_NAME }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
