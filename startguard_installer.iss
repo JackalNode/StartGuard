@@ -1,5 +1,5 @@
 ; startguard_installer.iss
-; Inno Setup script for StartGuard v0.9.0
+; Inno Setup script for StartGuard
 ;
 ; HOW TO USE:
 ;   1. Open Inno Setup Compiler
@@ -37,7 +37,7 @@ DefaultGroupName=JackalNode\StartGuard
 
 ; Where the finished installer .exe gets saved after compiling
 OutputDir={#SourcePath}Output
-OutputBaseFilename=StartGuard_Setup_v0.9.0
+OutputBaseFilename=StartGuard_Setup_v{#AppVersion}
 
 ; Require admin rights to install (needed since the app itself needs admin)
 PrivilegesRequired=admin
