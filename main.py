@@ -32,7 +32,7 @@ def setup_crash_logger():
                 0,
                 f"StartGuard crashed and wrote an error log to your Desktop.\n\n"
                 f"File: startguard_crash.txt\n\n"
-                f"Please send this file to JackalProducts support.",
+                f"Please send this file to JackalNode support.",
                 "StartGuard — unexpected error",
                 0x10  # MB_ICONERROR
             )
@@ -142,8 +142,8 @@ def main():
 
     app = QApplication(sys.argv)
     app.setApplicationName("StartGuard")
-    app.setApplicationVersion("0.9.0")
-    app.setOrganizationName("JackalProducts")
+    app.setApplicationVersion("0.9.2")
+    app.setOrganizationName("JackalNode")
 
     # ── Initialise components ──────────────────────────────────────
     from settings import Settings, AUDIT_LOG
