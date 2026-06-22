@@ -117,6 +117,17 @@ APPROVAL_KEYS = {
         winreg.HKEY_LOCAL_MACHINE,
         r"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run",
     ),
+    # Windows tracks approval state per-hive, not per-Run-subkey — a WOW6432Node
+    # Run entry's enabled/disabled state lives in the SAME HKLM StartupApproved
+    # key as a normal HKLM entry, not a separate WOW64-specific location. Without
+    # this, WOW64 items fell through to _toggle_registry_direct()'s rename
+    # fallback below — which doesn't actually disable anything on Windows, since
+    # the Run key executes every value regardless of its name (see that method's
+    # docstring for the full explanation).
+    "registry_hklm_wow64": (
+        winreg.HKEY_LOCAL_MACHINE,
+        r"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run",
+    ),
     "task_manager": (
         winreg.HKEY_CURRENT_USER,
         r"SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run",
@@ -206,6 +217,96 @@ class StartupToggle:
         self.audit_log.record(item, "enable", result)
         return result
 
+    def repair_legacy_disable_bug(self, item: StartupItem) -> ToggleResult:
+        """
+        Renames a registry value back to its original name after the
+        historical rename-fallback bug left it mangled with one or more
+        stacked STARTGUARD_DISABLED_ prefixes (see scanner.py's
+        _check_legacy_disable_bug for how this gets detected).
+
+        Important: this ONLY restores the name. It does not change
+        whether the item actually runs at startup — Windows executes
+        every Run-key value regardless of its name, so the mangled entry
+        was never actually disabled in the first place by that old
+        method. After this repair, the item shows up normally on the
+        next scan and can be disabled the regular (working) way if
+        that's still wanted.
+        """
+        if not item.legacy_disable_bug_name:
+            result = ToggleResult(
+                success=False,
+                action="failed",
+                item_name=item.friendly_name,
+                message="Nothing to repair — this item doesn't have the legacy naming issue.",
+                error="repair_legacy_disable_bug called with no legacy_disable_bug_name set",
+            )
+            self.audit_log.record(item, "legacy_repair", result)
+            return result
+
+        hive, key_path = REGISTRY_WRITE_KEYS.get(item.source, (None, None))
+        if hive is None:
+            result = ToggleResult(
+                success=False,
+                action="failed",
+                item_name=item.friendly_name,
+                message=f"StartGuard couldn't repair {item.friendly_name} — unrecognised registry source.",
+                error=f"Unknown source for repair: {item.source}",
+            )
+            self.audit_log.record(item, "legacy_repair", result)
+            return result
+
+        try:
+            key = winreg.OpenKey(hive, key_path, 0,
+                                  winreg.KEY_READ | winreg.KEY_SET_VALUE | winreg.KEY_WRITE)
+            try:
+                value_data, value_type = winreg.QueryValueEx(key, item.source_path)
+                winreg.SetValueEx(key, item.legacy_disable_bug_name, 0, value_type, value_data)
+                winreg.DeleteValue(key, item.source_path)
+            finally:
+                winreg.CloseKey(key)
+
+            result = ToggleResult(
+                success=True,
+                action="repaired",
+                item_name=item.friendly_name,
+                message=(
+                    f"Fixed — {item.friendly_name}'s startup entry name has been restored. "
+                    f"This was a leftover naming issue from an older version of StartGuard, "
+                    f"not anything wrong with your PC. It'll show up normally on your next scan."
+                ),
+            )
+        except FileNotFoundError:
+            result = ToggleResult(
+                success=False,
+                action="failed",
+                item_name=item.friendly_name,
+                message=(
+                    f"StartGuard couldn't find the entry to repair for {item.friendly_name} — "
+                    f"it may have already been cleaned up."
+                ),
+                error="FileNotFoundError during legacy repair",
+            )
+        except PermissionError:
+            result = ToggleResult(
+                success=False,
+                action="failed",
+                item_name=item.friendly_name,
+                message=f"StartGuard needs administrator permission to repair {item.friendly_name}.",
+                error="PermissionError",
+            )
+        except Exception as e:
+            result = ToggleResult(
+                success=False,
+                action="failed",
+                item_name=item.friendly_name,
+                message=f"Something went wrong repairing {item.friendly_name}. No changes were made.",
+                error=str(e),
+            )
+            logger.error(f"Unexpected error repairing {item.raw_name}: {e}")
+
+        self.audit_log.record(item, "legacy_repair", result)
+        return result
+
     def _route(self, item: StartupItem, enable: bool) -> ToggleResult:
         if item.source in ("registry_hklm", "registry_hklm_wow64", "registry_hkcu"):
             return self._toggle_registry(item, enable)
@@ -261,6 +362,24 @@ class StartupToggle:
         """
         Fallback: prefix-rename the value to disable it.
         Used when StartupApproved key is not available.
+
+        IMPORTANT — this does NOT actually prevent Windows from running the
+        item. The Run key executes every value's command at logon regardless
+        of that value's name — renaming "Discord" to "STARTGUARD_DISABLED_
+        Discord" doesn't stop Windows from launching it, it just changes
+        what the name says. This was discovered because registry_hklm_wow64
+        wasn't in APPROVAL_KEYS and fell through to this method: Discord's
+        WOW6432Node entry kept launching regardless of being "disabled," and
+        because the renamed value then looked like a brand-new, unrelated,
+        enabled item on the next scan, repeated disable attempts kept
+        stacking another STARTGUARD_DISABLED_ prefix on top rather than ever
+        actually converging.
+
+        Now that registry_hklm, registry_hkcu, and registry_hklm_wow64 are
+        ALL covered by APPROVAL_KEYS above, this method should be unreachable
+        in practice. It's kept only as a defensive fallback in case a future
+        registry source gets added without also being added to APPROVAL_KEYS
+        — if that ever happens, fix APPROVAL_KEYS rather than relying on this.
         """
         DISABLED_PREFIX = "STARTGUARD_DISABLED_"
         hive, key_path = REGISTRY_WRITE_KEYS[item.source]

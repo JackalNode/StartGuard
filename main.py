@@ -142,7 +142,7 @@ def main():
 
     app = QApplication(sys.argv)
     app.setApplicationName("StartGuard")
-    app.setApplicationVersion("0.9.3")
+    app.setApplicationVersion("1.0.0")
     app.setOrganizationName("JackalNode")
 
     # ── Initialise components ──────────────────────────────────────

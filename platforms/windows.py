@@ -304,6 +304,11 @@ def _read_run_key(key, source_name: str) -> list:
     items = []
     index = 0
 
+    # "registry_hklm" and "registry_hklm_wow64" both ultimately live under
+    # HKLM and share its StartupApproved approval key — so both count as
+    # the "hklm" hive scope for dedup purposes (see scanner.py's _dedup_key).
+    registry_hive = "hkcu" if "hkcu" in source_name else "hklm"
+
     while True:
         try:
             name, data, _ = winreg.EnumValue(key, index)
@@ -322,6 +327,7 @@ def _read_run_key(key, source_name: str) -> list:
                 publisher="Unknown",
                 source=source_name,
                 source_path=name,            # Registry value name — needed for toggle
+                registry_hive=registry_hive,
                 safety_rating="unknown",
                 safe_to_disable=False,
                 is_system_critical=_is_system_critical(exe_name),
@@ -375,6 +381,12 @@ def read_task_manager_startup() -> list:
                 raise PermissionError(f"Access denied reading Task Manager startup: {key_path}")
             continue
 
+        # Same hkcu/hklm scope used by the registry readers above — this is
+        # what lets dedup correctly tell apart two entries that happen to
+        # share a literal value name but live in different hives (e.g.
+        # Discord genuinely registers itself separately in both).
+        registry_hive = "hkcu" if "hkcu" in source_label else "hklm"
+
         index = 0
         while True:
             try:
@@ -399,6 +411,7 @@ def read_task_manager_startup() -> list:
                     publisher="Unknown",
                     source="task_manager",
                     source_path=name,
+                    registry_hive=registry_hive,
                     safety_rating="unknown",
                     safe_to_disable=False,
                     is_system_critical=_is_system_critical(exe_name),

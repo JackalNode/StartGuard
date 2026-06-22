@@ -49,6 +49,13 @@ class StartupItem:
     was_disabled_by_user: bool = False     # StartGuard turned this off
     re_enabled_detected: bool = False      # It turned itself back on
 
+    # Legacy cleanup — leftover mangled registry value name from a since-
+    # fixed toggle.py bug (registry_hklm_wow64 used to fall through to a
+    # rename-based "disable" that didn't actually work). Purely cosmetic;
+    # toggling already works correctly regardless. Surfaced as an opt-in
+    # cleanup offer in the UI, never acted on automatically.
+    legacy_disabled_artifact: bool = False
+
     # Dead link detection
     # "" = not checked or clean
     # "dead"                  = file path confirmed missing from disk → shown as 🔴 in UI
@@ -59,6 +66,26 @@ class StartupItem:
     #                           → reported for future improvement
     dead_link_status: str = ""
     dead_link_path: str = ""    # The exact path we tried (or couldn't) check — used in reports
+
+    # Legacy disable-bug detection (historical — fixed once registry_hklm_wow64
+    # was added to toggle.py's APPROVAL_KEYS). Earlier versions could fall back
+    # to renaming a registry value to add a STARTGUARD_DISABLED_ prefix, which
+    # never actually prevented Windows from running it and could stack the
+    # prefix repeatedly on every disable attempt. "" = clean. Otherwise holds
+    # the recovered original value name, for toggle.py to restore if the user
+    # approves the cleanup. This is StartGuard's own historical bug being
+    # caught and disclosed — NOT a sign of software fighting to stay enabled
+    # (that's what re_enabled_detected above is for).
+    legacy_disable_bug_name: str = ""
+
+    # Which registry hive a registry/task_manager item came from — "hkcu" or
+    # "hklm" ("" for non-registry sources). Windows tracks Run-key approval
+    # state separately per hive, and the SAME literal value name can exist
+    # independently in both (Discord genuinely registers itself in both —
+    # that's not a bug, it's two real, separately-toggleable startup entries).
+    # Used by dedup so it never conflates an HKCU entry with an unrelated HKLM
+    # entry just because they happen to share a name.
+    registry_hive: str = ""
 
     # Metadata
     last_seen: str = field(default_factory=lambda: datetime.now().isoformat())
@@ -77,6 +104,8 @@ class ScanResult:
     scan_time: str = field(default_factory=lambda: datetime.now().isoformat())
     needs_elevation: bool = False          # True if some sources were blocked by permissions
     elevation_message: str = ""            # Plain-English explanation for the UI
+    legacy_cleanup_items: list = field(default_factory=list)   # Items flagged for the
+                                                                 # one-time registry name cleanup
 
 
 # ─────────────────────────────────────────────
@@ -174,6 +203,7 @@ class StartupScanner:
         # IMPORTANT: dead link check runs AFTER dedup so we don't check the same path twice
         all_items = self._deduplicate(all_items)
         all_items = self._check_dead_links(all_items)
+        all_items = self._check_legacy_disable_bug(all_items)
 
         elevation_message = ""
         if needs_elevation:
@@ -190,6 +220,7 @@ class StartupScanner:
             sources_failed=sources_failed,
             needs_elevation=needs_elevation,
             elevation_message=elevation_message,
+            legacy_cleanup_items=[i for i in all_items if i.legacy_disabled_artifact],
         )
 
     # ─────────────────────────────────────────
@@ -279,10 +310,22 @@ class StartupScanner:
     # ─────────────────────────────────────────
 
     def _enrich(self, raw: StartupItem) -> StartupItem:
-        # For scheduled tasks, try the task's friendly_name first (e.g. "Adobe Acrobat Update Task")
-        # then fall back to raw_name (the exe). Task names are more reliable database keys
-        # than exe names which may be generic (e.g. "AcroRd32.exe").
-        if raw.source == "scheduled_task" and raw.friendly_name:
+        # Try the source's own label first (scheduled task name, or registry
+        # value name) before falling back to the parsed exe name. The exe
+        # name alone can be misleadingly generic — many apps' background
+        # updaters are literally named "Update.exe" (the Squirrel framework
+        # convention used by Discord, Slack, GitHub Desktop, and others),
+        # which risks matching an unrelated database entry entirely (this
+        # is exactly how Discord's updater once got misidentified as
+        # StartGuard's own "JackalNode Updater" entry). For registry and
+        # Task Manager items, friendly_name is set to the registry value
+        # name itself at construction time (e.g. "Discord") — almost
+        # always a far more specific, reliable key than the exe name.
+        label_first_sources = (
+            "scheduled_task", "registry_hklm", "registry_hklm_wow64",
+            "registry_hkcu", "task_manager",
+        )
+        if raw.source in label_first_sources and raw.friendly_name:
             db_entry = self.database.lookup(raw.friendly_name) or self.database.lookup(raw.raw_name)
         else:
             db_entry = self.database.lookup(raw.raw_name)
@@ -389,16 +432,51 @@ class StartupScanner:
         "winzip":            "winzip",         # WinZip
     }
 
-    def _dedup_key(self, raw_name: str) -> str:
+    # Sources that all ultimately reference the same underlying Windows
+    # registry value for the same item (the Run key entry, and Windows'
+    # separate record of whether that entry is approved/disabled). Used
+    # so dedup can correlate them by source_path — see _dedup_key below.
+    REGISTRY_OR_TASKMGR_SOURCES = {
+        "registry_hklm", "registry_hklm_wow64", "registry_hkcu", "task_manager"
+    }
+
+    def _dedup_key(self, item: StartupItem) -> str:
         """
-        Normalise a raw_name into a deduplication key.
-        Strips .exe, leading path, and whitespace so that
-        'OneDrive', 'OneDrive.exe', and 'C:\\...\\OneDrive.exe'
-        all collapse to the same key 'onedrive'.
-        Also applies alias mappings for apps that use different names
-        in registry vs task manager.
+        Normalise an item into a deduplication key.
+
+        Registry and Task Manager entries are keyed off the literal
+        registry value name (source_path) AND which hive they came from,
+        rather than raw_name alone. The value name is guaranteed identical
+        between a Run-key entry and its corresponding StartupApproved/Task
+        Manager entry — unlike raw_name, which can differ for the same app:
+          - Microsoft Edge's Run-key value is a hash-suffixed label
+            ("MicrosoftEdgeAutoLaunch_14E22...") that doesn't parse into
+            anything meaningful on its own, while the Run key's *command*
+            correctly resolves to "msedge.exe" — two different raw_names
+            for the exact same registration.
+          - Discord's Run-key command launches "Update.exe" (its own
+            updater wrapper), not "Discord.exe", while the value name
+            itself is just "Discord" — different raw_names again.
+        Without this, those two readings of the same app never merge,
+        and the registry-sourced row (whose enabled state is always
+        hardcoded True — only the approval key knows the real state)
+        never gets corrected. That's the "toggles off, comes back after
+        a restart" bug for exactly these two apps.
+
+        The hive is included too because the same literal value name can
+        legitimately exist independently in HKCU and HKLM — Discord
+        genuinely registers itself in both. Keying on name alone would
+        wrongly conflate two real, separately-toggleable entries into one
+        and silently drop the other (found the hard way: fixing the
+        legacy-disable-bug naming on an HKLM entry made it collide with
+        an unrelated HKCU entry that happened to share the same name).
+
+        Everything else still keys off the cleaned-up raw_name as before.
         """
-        name = raw_name.strip().lower()
+        if item.source in self.REGISTRY_OR_TASKMGR_SOURCES:
+            return f"regval:{item.registry_hive}:" + item.source_path.strip().lower()
+
+        name = item.raw_name.strip().lower()
         name = os.path.basename(name)
         if name.endswith(".exe"):
             name = name[:-4]
@@ -417,7 +495,7 @@ class StartupScanner:
             "registry_hklm",
             "registry_hkcu",
             "task_manager",
-            "scheduled_tasks",
+            "scheduled_task",
             "startup_folder",
             "systemd_user",
             "autostart_folder",
@@ -433,7 +511,7 @@ class StartupScanner:
         # First pass — group all items by dedup key
         groups = defaultdict(list)
         for item in items:
-            key = self._dedup_key(item.raw_name)
+            key = self._dedup_key(item)
             groups[key].append(item)
 
         # Second pass — resolve each group to a single item
@@ -647,6 +725,43 @@ class StartupScanner:
                 logger.debug(
                     f"Dead link check — unverifiable (path check error): "
                     f"{item.raw_name} | {extracted} | {e}"
+                )
+
+        return items
+
+    # ─────────────────────────────────────────
+    # Legacy disable-bug detection
+    # ─────────────────────────────────────────
+
+    LEGACY_DISABLE_PREFIX = "STARTGUARD_DISABLED_"
+
+    def _check_legacy_disable_bug(self, items: list) -> list:
+        """
+        Detects leftover damage from a historical bug (fixed once
+        registry_hklm_wow64 was added to toggle.py's APPROVAL_KEYS): the
+        old rename-based disable fallback could stack STARTGUARD_DISABLED_
+        prefixes onto a Run-key value name without ever actually stopping
+        Windows from running it. Read-only, like the rest of this file —
+        only flags affected items via legacy_disable_bug_name; the actual
+        repair write happens in toggle.py if the user approves it.
+        """
+        for item in items:
+            if item.source not in ("registry_hklm", "registry_hklm_wow64", "registry_hkcu"):
+                continue
+
+            name = item.source_path
+            if not name.startswith(self.LEGACY_DISABLE_PREFIX):
+                continue
+
+            clean = name
+            while clean.startswith(self.LEGACY_DISABLE_PREFIX):
+                clean = clean[len(self.LEGACY_DISABLE_PREFIX):]
+
+            if clean:
+                item.legacy_disable_bug_name = clean
+                logger.warning(
+                    f"Legacy disable-bug damage detected: {name!r} → "
+                    f"will offer to restore as {clean!r}"
                 )
 
         return items

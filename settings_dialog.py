@@ -3,14 +3,21 @@ settings_dialog.py - StartGuard Settings UI
 Modal dialog opened from the ⚙ button in the main window.
 Two sections: Basic (always visible) and Advanced (collapsed by default).
 Saves via the existing Settings class — no direct file access here.
+
+Theme: this dialog has direct access to `settings`, so it computes its
+own theme dict on init (same pattern as PingGuard's SettingsDialog).
+Nested helper widgets below don't have settings access, so they take
+the resolved `theme` dict as a constructor/function parameter instead.
 """
 
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QLineEdit, QCheckBox, QFrame, QWidget, QSizePolicy
+    QLineEdit, QCheckBox, QComboBox, QFrame, QWidget, QSizePolicy
 )
 from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtGui import QFont, QDesktopServices
+
+from theme import get_theme
 
 
 # ─────────────────────────────────────────────
@@ -18,10 +25,10 @@ from PyQt6.QtGui import QFont, QDesktopServices
 # ─────────────────────────────────────────────
 
 class SectionHeader(QLabel):
-    def __init__(self, text: str, parent=None):
+    def __init__(self, text: str, theme: dict, parent=None):
         super().__init__(text, parent)
         self.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
-        self.setStyleSheet("color: #555570; letter-spacing: 1px;")
+        self.setStyleSheet(f"color: {theme['inactive']}; letter-spacing: 1px;")
 
 
 # ─────────────────────────────────────────────
@@ -29,7 +36,7 @@ class SectionHeader(QLabel):
 # ─────────────────────────────────────────────
 
 class SettingRow(QWidget):
-    def __init__(self, label: str, sublabel: str = "", parent=None):
+    def __init__(self, label: str, theme: dict, sublabel: str = "", parent=None):
         super().__init__(parent)
         self.setStyleSheet("background: transparent;")
         layout = QHBoxLayout(self)
@@ -41,12 +48,12 @@ class SettingRow(QWidget):
         text_col.setSpacing(1)
         lbl = QLabel(label)
         lbl.setFont(QFont("Segoe UI", 10))
-        lbl.setStyleSheet("color: #e0e0ff;")
+        lbl.setStyleSheet(f"color: {theme['text_bright']};")
         text_col.addWidget(lbl)
         if sublabel:
             sub = QLabel(sublabel)
             sub.setFont(QFont("Segoe UI", 8))
-            sub.setStyleSheet("color: #555570;")
+            sub.setStyleSheet(f"color: {theme['inactive']};")
             text_col.addWidget(sub)
         layout.addLayout(text_col, stretch=1)
 
@@ -64,7 +71,7 @@ class SettingRow(QWidget):
 # ─────────────────────────────────────────────
 
 class ApiKeyField(QWidget):
-    def __init__(self, placeholder: str, parent=None):
+    def __init__(self, placeholder: str, theme: dict, parent=None):
         super().__init__(parent)
         self.setStyleSheet("background: transparent;")
         layout = QHBoxLayout(self)
@@ -76,19 +83,19 @@ class ApiKeyField(QWidget):
         self.field.setEchoMode(QLineEdit.EchoMode.Password)
         self.field.setFixedHeight(32)
         self.field.setMinimumWidth(260)
-        self.field.setStyleSheet("""
-            QLineEdit {
-                background: #13131f;
-                color: #e0e0ff;
-                border: 1px solid #2a2a3e;
+        self.field.setStyleSheet(f"""
+            QLineEdit {{
+                background: {theme['bg']};
+                color: {theme['text_bright']};
+                border: 1px solid {theme['border_alt']};
                 border-radius: 6px;
                 padding: 4px 10px;
                 font-size: 10px;
                 font-family: Consolas;
-            }
-            QLineEdit:focus {
-                border: 1px solid #4c4cff;
-            }
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {theme['accent']};
+            }}
         """)
         layout.addWidget(self.field)
 
@@ -96,15 +103,15 @@ class ApiKeyField(QWidget):
         self.eye_btn = QPushButton("👁")
         self.eye_btn.setFixedSize(32, 32)
         self.eye_btn.setToolTip("Show / hide key")
-        self.eye_btn.setStyleSheet("""
-            QPushButton {
-                background: #1e1e2e;
-                color: #555570;
-                border: 1px solid #2a2a3e;
+        self.eye_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {theme['surface']};
+                color: {theme['inactive']};
+                border: 1px solid {theme['border_alt']};
                 border-radius: 6px;
                 font-size: 13px;
-            }
-            QPushButton:hover { background: #252535; color: #aaaacc; }
+            }}
+            QPushButton:hover {{ background: {theme['surface_hover']}; color: {theme['label_secondary']}; }}
         """)
         self.eye_btn.clicked.connect(self._toggle_visibility)
         layout.addWidget(self.eye_btn)
@@ -128,7 +135,7 @@ class ApiKeyField(QWidget):
 # ─────────────────────────────────────────────
 
 class CollapsibleSection(QWidget):
-    def __init__(self, title: str, parent=None):
+    def __init__(self, title: str, theme: dict, parent=None):
         super().__init__(parent)
         self.setStyleSheet("background: transparent;")
         self._expanded = False
@@ -140,26 +147,26 @@ class CollapsibleSection(QWidget):
         # Toggle header button
         self.toggle_btn = QPushButton(f"▶  {title}")
         self.toggle_btn.setFixedHeight(32)
-        self.toggle_btn.setStyleSheet("""
-            QPushButton {
-                background: #1a1a2e;
-                color: #555570;
+        self.toggle_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {theme['surface_alt']};
+                color: {theme['inactive']};
                 border: none;
                 border-radius: 6px;
                 font-size: 10px;
                 font-family: Segoe UI;
                 text-align: left;
                 padding-left: 10px;
-            }
-            QPushButton:hover { background: #222238; color: #aaaacc; }
+            }}
+            QPushButton:hover {{ background: {theme['row_hover']}; color: {theme['label_secondary']}; }}
         """)
         self.toggle_btn.clicked.connect(self._toggle)
         outer.addWidget(self.toggle_btn)
 
         # Content panel — hidden by default
         self.content = QWidget()
-        self.content.setStyleSheet("""
-            background: #1a1a2e;
+        self.content.setStyleSheet(f"""
+            background: {theme['surface_alt']};
             border-radius: 6px;
         """)
         self.content_layout = QVBoxLayout(self.content)
@@ -183,10 +190,10 @@ class CollapsibleSection(QWidget):
 # Divider line
 # ─────────────────────────────────────────────
 
-def _divider() -> QFrame:
+def _divider(theme: dict) -> QFrame:
     line = QFrame()
     line.setFrameShape(QFrame.Shape.HLine)
-    line.setStyleSheet("color: #2a2a3e; margin: 2px 0;")
+    line.setStyleSheet(f"color: {theme['border_alt']}; margin: 2px 0;")
     return line
 
 
@@ -194,8 +201,8 @@ def _divider() -> QFrame:
 # Link label — opens URL in browser
 # ─────────────────────────────────────────────
 
-def _link(text: str, url: str) -> QLabel:
-    lbl = QLabel(f'<a href="{url}" style="color:#4c4cff; text-decoration:none;">{text}</a>')
+def _link(text: str, url: str, theme: dict) -> QLabel:
+    lbl = QLabel(f'<a href="{url}" style="color:{theme["accent"]}; text-decoration:none;">{text}</a>')
     lbl.setFont(QFont("Segoe UI", 8))
     lbl.setOpenExternalLinks(True)
     return lbl
@@ -208,13 +215,14 @@ def _link(text: str, url: str) -> QLabel:
 class SettingsDialog(QDialog):
     """
     Settings dialog for StartGuard.
-    Basic section: theme (disabled, coming soon), show safe items.
+    Basic section: theme (Dark/Light dropdown), show safe items.
     Advanced section (collapsed): VirusTotal key, Claude API key.
     """
 
     def __init__(self, settings, parent=None):
         super().__init__(parent)
         self.settings = settings
+        self.theme = get_theme(settings.get("theme", "dark"))
         self._unsaved = {}   # Holds changes until Save is clicked
 
         self.setWindowTitle("StartGuard — Settings")
@@ -229,63 +237,66 @@ class SettingsDialog(QDialog):
         # ── Title ────────────────────────────────────────────────────
         title = QLabel("Settings")
         title.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
-        title.setStyleSheet("color: #e0e0ff;")
+        title.setStyleSheet(f"color: {self.theme['text_bright']};")
         layout.addWidget(title)
 
-        layout.addWidget(_divider())
+        layout.addWidget(_divider(self.theme))
 
         # ── BASIC SECTION ────────────────────────────────────────────
-        layout.addWidget(SectionHeader("BASIC"))
+        layout.addWidget(SectionHeader("BASIC", self.theme))
 
-        # Theme — disabled, coming soon
+        # Theme — Dark/Light dropdown. Kept as a dropdown rather than a
+        # simple switch deliberately, so it's obvious more options
+        # (custom themes) can slot in here later without restructuring.
         theme_row = SettingRow(
             "Theme",
-            "More themes coming soon"
+            self.theme,
+            "More options coming soon"
         )
-        theme_badge = QLabel("🌙 Dark  —  coming soon")
-        theme_badge.setFont(QFont("Segoe UI", 9))
-        theme_badge.setStyleSheet("""
-            color: #444466;
-            background: #1a1a2e;
-            border-radius: 4px;
-            padding: 4px 10px;
-        """)
-        theme_row.add_control(theme_badge)
+        self.theme_combo = QComboBox()
+        self.theme_combo.addItem("🌙 Dark", "dark")
+        self.theme_combo.addItem("☀️ Light", "light")
+        current_theme_name = self.settings.get("theme", "dark")
+        self.theme_combo.setCurrentIndex(1 if current_theme_name == "light" else 0)
+        self.theme_combo.setFixedWidth(130)
+        self.theme_combo.setStyleSheet(self._combo_style())
+        theme_row.add_control(self.theme_combo)
         layout.addWidget(theme_row)
 
         # Show safe items toggle
         safe_row = SettingRow(
             "Show safe items",
+            self.theme,
             "Hide items StartGuard confirms are safe to reduce clutter"
         )
         self.show_safe_cb = QCheckBox()
         self.show_safe_cb.setChecked(self.settings.get("show_safe_items", True))
-        self.show_safe_cb.setStyleSheet("""
-            QCheckBox::indicator {
+        self.show_safe_cb.setStyleSheet(f"""
+            QCheckBox::indicator {{
                 width: 18px; height: 18px;
                 border-radius: 4px;
-                border: 1px solid #2a2a3e;
-                background: #13131f;
-            }
-            QCheckBox::indicator:checked {
-                background: #4c4cff;
-                border: 1px solid #4c4cff;
+                border: 1px solid {self.theme['border_alt']};
+                background: {self.theme['bg']};
+            }}
+            QCheckBox::indicator:checked {{
+                background: {self.theme['accent']};
+                border: 1px solid {self.theme['accent']};
                 image: none;
-            }
+            }}
         """)
         safe_row.add_control(self.show_safe_cb)
         layout.addWidget(safe_row)
 
-        layout.addWidget(_divider())
+        layout.addWidget(_divider(self.theme))
 
         # ── ADVANCED SECTION (collapsible) ───────────────────────────
-        advanced = CollapsibleSection("Advanced  —  optional API keys")
+        advanced = CollapsibleSection("Advanced  —  optional API keys", self.theme)
         layout.addWidget(advanced)
 
         # VirusTotal key
         vt_label = QLabel("VirusTotal API Key")
         vt_label.setFont(QFont("Segoe UI", 10))
-        vt_label.setStyleSheet("color: #e0e0ff;")
+        vt_label.setStyleSheet(f"color: {self.theme['text_bright']};")
         advanced.add_widget(vt_label)
 
         vt_desc = QLabel(
@@ -293,21 +304,21 @@ class SettingsDialog(QDialog):
             "Your free key handles far more lookups than you'll ever need."
         )
         vt_desc.setFont(QFont("Segoe UI", 8))
-        vt_desc.setStyleSheet("color: #555570;")
+        vt_desc.setStyleSheet(f"color: {self.theme['inactive']};")
         vt_desc.setWordWrap(True)
         advanced.add_widget(vt_desc)
 
-        self.vt_field = ApiKeyField("Paste your VirusTotal API key here")
+        self.vt_field = ApiKeyField("Paste your VirusTotal API key here", self.theme)
         self.vt_field.set_text(self.settings.get("virustotal_api_key", ""))
         advanced.add_widget(self.vt_field)
-        advanced.add_widget(_link("Get a free key at virustotal.com", "https://www.virustotal.com/gui/my-apikey"))
+        advanced.add_widget(_link("Get a free key at virustotal.com", "https://www.virustotal.com/gui/my-apikey", self.theme))
 
-        advanced.add_widget(_divider())
+        advanced.add_widget(_divider(self.theme))
 
         # Claude API key
         claude_label = QLabel("Claude API Key  —  AI Lookups")
         claude_label.setFont(QFont("Segoe UI", 10))
-        claude_label.setStyleSheet("color: #e0e0ff;")
+        claude_label.setStyleSheet(f"color: {self.theme['text_bright']};")
         advanced.add_widget(claude_label)
 
         claude_desc = QLabel(
@@ -315,17 +326,17 @@ class SettingsDialog(QDialog):
             "You pay Anthropic directly — costs fractions of a penny per lookup."
         )
         claude_desc.setFont(QFont("Segoe UI", 8))
-        claude_desc.setStyleSheet("color: #555570;")
+        claude_desc.setStyleSheet(f"color: {self.theme['inactive']};")
         claude_desc.setWordWrap(True)
         advanced.add_widget(claude_desc)
 
-        self.claude_field = ApiKeyField("Paste your Claude API key here")
+        self.claude_field = ApiKeyField("Paste your Claude API key here", self.theme)
         self.claude_field.set_text(self.settings.get("claude_api_key", ""))
         advanced.add_widget(self.claude_field)
-        advanced.add_widget(_link("Get an API key at anthropic.com", "https://console.anthropic.com/"))
+        advanced.add_widget(_link("Get an API key at anthropic.com", "https://console.anthropic.com/", self.theme))
 
         layout.addStretch()
-        layout.addWidget(_divider())
+        layout.addWidget(_divider(self.theme))
 
         # ── Save / Cancel ────────────────────────────────────────────
         btn_row = QHBoxLayout()
@@ -353,6 +364,7 @@ class SettingsDialog(QDialog):
     # ─────────────────────────────────────────
 
     def _on_save(self):
+        self.settings.set("theme", self.theme_combo.currentData())
         self.settings.set("show_safe_items", self.show_safe_cb.isChecked())
 
         vt_key = self.vt_field.text()
@@ -368,41 +380,75 @@ class SettingsDialog(QDialog):
     # ─────────────────────────────────────────
 
     def _stylesheet(self):
-        return """
-            QDialog, QWidget {
-                background-color: #13131f;
-                color: #e0e0e0;
-            }
-            QMessageBox {
-                background: #1e1e2e;
-            }
+        return f"""
+            QDialog, QWidget {{
+                background-color: {self.theme['bg']};
+                color: {self.theme['text']};
+            }}
+            QMessageBox {{
+                background: {self.theme['surface']};
+            }}
+        """
+
+    def _combo_style(self):
+        # min-height + explicit drop-down styling avoid the text-clipping
+        # bug hit while building PingGuard's theme system (QComboBox's
+        # internal sizing doesn't always reserve enough height from
+        # padding alone).
+        t = self.theme
+        return f"""
+            QComboBox {{
+                background: {t['bg']};
+                color: {t['text_bright']};
+                border: 1px solid {t['border_alt']};
+                border-radius: 6px;
+                padding: 4px 10px;
+                font-size: 10px;
+                min-height: 20px;
+            }}
+            QComboBox:hover {{
+                border: 1px solid {t['accent']};
+            }}
+            QComboBox::drop-down {{
+                border: none;
+                width: 20px;
+            }}
+            QComboBox QAbstractItemView {{
+                background: {t['surface']};
+                color: {t['text_bright']};
+                border: 1px solid {t['border_alt']};
+                selection-background-color: {t['accent']};
+                selection-color: #ffffff;
+            }}
         """
 
     def _primary_btn_style(self):
-        return """
-            QPushButton {
-                background: #4c4cff;
+        t = self.theme
+        return f"""
+            QPushButton {{
+                background: {t['accent']};
                 color: #ffffff;
                 border: none;
                 border-radius: 6px;
                 padding: 4px 14px;
                 font-size: 11px;
                 font-family: Segoe UI;
-            }
-            QPushButton:hover { background: #6666ff; }
-            QPushButton:pressed { background: #3a3aee; }
+            }}
+            QPushButton:hover {{ background: {t['accent_hover']}; }}
+            QPushButton:pressed {{ background: #3a3aee; }}
         """
 
     def _secondary_btn_style(self):
-        return """
-            QPushButton {
-                background: #1e1e2e;
-                color: #aaaacc;
-                border: 1px solid #2a2a3e;
+        t = self.theme
+        return f"""
+            QPushButton {{
+                background: {t['surface']};
+                color: {t['label_secondary']};
+                border: 1px solid {t['border_alt']};
                 border-radius: 6px;
                 padding: 4px 14px;
                 font-size: 11px;
                 font-family: Segoe UI;
-            }
-            QPushButton:hover { background: #252535; }
+            }}
+            QPushButton:hover {{ background: {t['surface_hover']}; }}
         """

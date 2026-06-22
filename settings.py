@@ -46,7 +46,7 @@ DEFAULT_SETTINGS = {
     "claude_api_key":         "",      # Optional — user supplies their own Claude API key (tier 2)
     "virustotal_api_key":     "",      # Optional — user supplies their free VT key
     "show_safe_items":        True,
-    "version":                "0.9.3",
+    "version":                "1.0.0",
 }
 
 

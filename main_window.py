@@ -1,18 +1,30 @@
 """
 main_window.py - StartGuard main UI
 Table list on the left, detail panel on the right.
-Matches PingGuard's dark theme and visual style.
+Matches PingGuard's visual style — now with full light/dark theme support.
+
+Theme notes (port from PingGuard, Session 14's proven pattern):
+- MainWindow has direct access to `settings`, so it computes its own
+  theme dict (self.theme) on init and re-derives it in apply_theme().
+- StartupItemRow and DetailPanel don't have settings access, so they
+  take the resolved `theme` dict as a constructor parameter instead.
+- Live re-theme rebuilds the whole UI (safest way to re-skin every
+  widget, including custom-painted ones, without hunting down each
+  reference individually) — then restores whatever scan results,
+  selection, and warning banners were on screen before the switch, so
+  changing the theme never loses your current scan.
 """
 
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QScrollArea, QFrame, QMessageBox, QSplitter,
-    QSizePolicy, QApplication
+    QSizePolicy, QApplication, QDialog
 )
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QThread, QObject
-from PyQt6.QtGui import QFont, QColor, QPainter, QBrush, QIcon
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QThread, QObject, QSize, QRectF, QPointF
+from PyQt6.QtGui import QFont, QColor, QPainter, QBrush, QIcon, QPainterPath, QTransform, QPixmap
 import datetime
 from constants import DISCORD_REPORT_WEBHOOK
+from theme import get_theme
 
 import sys
 import os
@@ -35,7 +47,7 @@ class StatusDot(QWidget):
     """Coloured circle indicating safety rating."""
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.color = "#555570"
+        self.color = "#555570"   # Overwritten immediately by set_color() below
         self.setFixedSize(12, 12)
 
     def set_color(self, color: str):
@@ -53,23 +65,17 @@ class StatusDot(QWidget):
 # ─────────────────────────────────────────────
 # Colour helpers
 # ─────────────────────────────────────────────
-
-RATING_COLORS = {
-    "safe":      "#00e676",   # Green  — matches PingGuard good ping
-    "unknown":   "#ffb300",   # Amber  — caution
-    "watch_out": "#ff5252",   # Red    — matches PingGuard bad ping
-}
+# StartGuard's safe/unknown/watch-out and impact colors are snapped to
+# the shared success/warning/danger theme tokens (same colors PingGuard
+# uses), rather than having their own dedicated tokens. `theme` is
+# optional on both functions so any old call site that forgets to pass
+# one still gets a sensible dark-mode-equivalent answer instead of a
+# crash.
 
 IMPACT_LABELS = {
     "slows_boot": "🐢 Slows boot",
     "minimal":    "⚡ Minimal",
     "delayed":    "🕐 Delayed",
-}
-
-IMPACT_COLORS = {
-    "slows_boot": "#ff5252",
-    "minimal":    "#00e676",
-    "delayed":    "#ffb300",
 }
 
 RATING_LABELS = {
@@ -79,8 +85,82 @@ RATING_LABELS = {
 }
 
 
-def rating_color(rating: str) -> str:
-    return RATING_COLORS.get(rating, "#555570")
+def rating_color(rating: str, theme: dict = None) -> str:
+    if theme is None:
+        theme = get_theme("dark")
+    mapping = {
+        "safe":      theme["success"],
+        "unknown":   theme["warning"],
+        "watch_out": theme["danger"],
+    }
+    return mapping.get(rating, theme["inactive"])
+
+
+def impact_color(impact: str, theme: dict = None) -> str:
+    if theme is None:
+        theme = get_theme("dark")
+    mapping = {
+        "slows_boot": theme["danger"],
+        "minimal":    theme["success"],
+        "delayed":    theme["warning"],
+    }
+    return mapping.get(impact, theme["text_faint"])
+
+
+def make_gear_icon(color: str, size: int = 18) -> QIcon:
+    """
+    Draws a vector gear icon at runtime instead of relying on the ⚙
+    unicode character. Ported from PingGuard's fix for the exact same
+    problem (their settings button): a font glyph's appearance depends
+    entirely on OS font fallback and can render as a barely-recognizable
+    blob. A hand-drawn icon always looks the same everywhere, and themes
+    cleanly since it's drawn in whatever color is passed in.
+
+    Same construction as PingGuard's version: circle body + rotated
+    rounded-rect teeth + a subtracted center hole.
+    """
+    pixmap = QPixmap(size, size)
+    pixmap.fill(Qt.GlobalColor.transparent)
+
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(QBrush(QColor(color)))
+
+    center = size / 2
+    body_radius = size * 0.30
+    hole_radius = size * 0.13
+    tooth_count = 8
+    tooth_width = size * 0.17
+    tooth_height = size * 0.15
+
+    path = QPainterPath()
+    path.addEllipse(QPointF(center, center), body_radius, body_radius)
+
+    tooth_rect = QRectF(
+        center - tooth_width / 2,
+        center - body_radius - tooth_height * 0.55,
+        tooth_width,
+        tooth_height,
+    )
+    for i in range(tooth_count):
+        angle = (360 / tooth_count) * i
+        tooth = QPainterPath()
+        tooth.addRoundedRect(tooth_rect, 1.5, 1.5)
+        transform = QTransform()
+        transform.translate(center, center)
+        transform.rotate(angle)
+        transform.translate(-center, -center)
+        path = path.united(transform.map(tooth))
+
+    hole = QPainterPath()
+    hole.addEllipse(QPointF(center, center), hole_radius, hole_radius)
+    path = path.subtracted(hole)
+
+    painter.drawPath(path)
+    painter.end()
+
+    return QIcon(pixmap)
 
 
 # ─────────────────────────────────────────────
@@ -96,9 +176,10 @@ class StartupItemRow(QFrame):
     clicked = pyqtSignal(object)   # emits the StartupItem
     toggled = pyqtSignal(object, bool)  # emits (StartupItem, new_enabled_state)
 
-    def __init__(self, item, parent=None):
+    def __init__(self, item, theme: dict, parent=None):
         super().__init__(parent)
         self.item = item
+        self.theme = theme
         self._selected = False
 
         self.setFrameShape(QFrame.Shape.NoFrame)
@@ -112,14 +193,14 @@ class StartupItemRow(QFrame):
 
         # Status dot
         self.dot = StatusDot()
-        self.dot.set_color(rating_color(item.safety_rating) if item.enabled else "#555570")
+        self.dot.set_color(rating_color(item.safety_rating, self.theme) if item.enabled else self.theme["inactive"])
         layout.addWidget(self.dot)
 
         # Name
         self.name_label = QLabel(item.friendly_name)
         self.name_label.setFont(QFont("Segoe UI", 10))
         self.name_label.setStyleSheet(
-            "color: #e0e0ff;" if item.enabled else "color: #555570;"
+            f"color: {self.theme['text_bright']};" if item.enabled else f"color: {self.theme['inactive']};"
         )
         self.name_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.name_label.setMinimumWidth(0)
@@ -127,11 +208,11 @@ class StartupItemRow(QFrame):
 
         # Re-enabled alert badge
         self.re_enabled_badge = QLabel("↩ came back")
-        self.re_enabled_badge.setStyleSheet("""
-            color: #ff5252;
+        self.re_enabled_badge.setStyleSheet(f"""
+            color: {self.theme['danger']};
             font-size: 9px;
             font-weight: bold;
-            background: #2a1a1a;
+            background: {self.theme['danger_tint_bg']};
             border-radius: 3px;
             padding: 1px 5px;
         """)
@@ -140,10 +221,10 @@ class StartupItemRow(QFrame):
 
         # Boot impact label
         impact_text = IMPACT_LABELS.get(item.boot_impact, "")
-        impact_color = IMPACT_COLORS.get(item.boot_impact, "#888888")
+        impact_col = impact_color(item.boot_impact, self.theme)
         self.impact_label = QLabel(impact_text)
         self.impact_label.setFont(QFont("Segoe UI", 9))
-        self.impact_label.setStyleSheet(f"color: {impact_color};")
+        self.impact_label.setStyleSheet(f"color: {impact_col};")
         self.impact_label.setFixedWidth(100)
         self.impact_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         layout.addWidget(self.impact_label)
@@ -157,11 +238,12 @@ class StartupItemRow(QFrame):
         layout.addWidget(self.toggle_btn)
 
     def _apply_style(self):
+        t = self.theme
         if self._selected:
-            bg = "#2a2a4a"
-            border = "border-left: 3px solid #4c4cff;"
+            bg = t["row_selected_bg"]
+            border = f"border-left: 3px solid {t['accent']};"
         else:
-            bg = "#1e1e2e"
+            bg = t["surface"]
             border = "border-left: 3px solid transparent;"
 
         self.setStyleSheet(f"""
@@ -172,52 +254,53 @@ class StartupItemRow(QFrame):
                 margin: 1px 0;
             }}
             StartupItemRow:hover {{
-                background: #222238;
+                background: {t['row_hover']};
             }}
         """)
 
     def _update_toggle_style(self):
+        t = self.theme
         if self.item.is_system_critical:
             # Greyed out — hard blocked
             self.toggle_btn.setText("🔒")
             self.toggle_btn.setToolTip("StartGuard won't touch this Windows system item")
-            self.toggle_btn.setStyleSheet("""
-                QPushButton {
-                    background: #1a1a2e;
-                    color: #444466;
-                    border: 1px solid #2a2a3e;
+            self.toggle_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: {t['surface_alt']};
+                    color: {t['text_dim']};
+                    border: 1px solid {t['border_alt']};
                     border-radius: 13px;
                     font-size: 11px;
-                }
+                }}
             """)
             self.toggle_btn.setEnabled(False)
         elif self.item.enabled:
             self.toggle_btn.setText("ON")
             self.toggle_btn.setToolTip("Click to disable at startup")
-            self.toggle_btn.setStyleSheet("""
-                QPushButton {
-                    background: #1a3a2a;
-                    color: #00e676;
-                    border: 1px solid #00e676;
+            self.toggle_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: {t['toggle_on_bg']};
+                    color: {t['success']};
+                    border: 1px solid {t['success']};
                     border-radius: 13px;
                     font-size: 9px;
                     font-weight: bold;
-                }
-                QPushButton:hover { background: #1f4a35; }
+                }}
+                QPushButton:hover {{ background: {t['toggle_on_hover']}; }}
             """)
         else:
             self.toggle_btn.setText("OFF")
             self.toggle_btn.setToolTip("Click to re-enable at startup")
-            self.toggle_btn.setStyleSheet("""
-                QPushButton {
-                    background: #2a1a1a;
-                    color: #555570;
-                    border: 1px solid #3a2a2a;
+            self.toggle_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: {t['danger_tint_bg']};
+                    color: {t['inactive']};
+                    border: 1px solid {t['toggle_off_border']};
                     border-radius: 13px;
                     font-size: 9px;
                     font-weight: bold;
-                }
-                QPushButton:hover { background: #351f1f; }
+                }}
+                QPushButton:hover {{ background: {t['danger_tint_hover']}; }}
             """)
 
     def _on_toggle_clicked(self):
@@ -235,9 +318,9 @@ class StartupItemRow(QFrame):
 
     def refresh(self):
         """Update the row after the item's state has changed."""
-        self.dot.set_color(rating_color(self.item.safety_rating) if self.item.enabled else "#555570")
+        self.dot.set_color(rating_color(self.item.safety_rating, self.theme) if self.item.enabled else self.theme["inactive"])
         self.name_label.setStyleSheet(
-            "color: #e0e0ff;" if self.item.enabled else "color: #555570;"
+            f"color: {self.theme['text_bright']};" if self.item.enabled else f"color: {self.theme['inactive']};"
         )
         self.re_enabled_badge.setVisible(self.item.re_enabled_detected)
         self._update_toggle_style()
@@ -258,11 +341,12 @@ class DetailPanel(QWidget):
     toggle_requested = pyqtSignal(object, bool)   # (item, new_enabled_state)
     report_requested = pyqtSignal(object)          # item
 
-    def __init__(self, parent=None):
+    def __init__(self, theme: dict, parent=None):
         super().__init__(parent)
+        self.theme = theme
         self.item = None
         self.setMinimumWidth(220)
-        self.setStyleSheet("background: #181828; border-radius: 8px;")
+        self.setStyleSheet(f"background: {self.theme['panel_bg']}; border-radius: 8px;")
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
@@ -271,7 +355,7 @@ class DetailPanel(QWidget):
         # Placeholder when nothing selected
         self.placeholder = QLabel("← Select an item\nto see details")
         self.placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.placeholder.setStyleSheet("color: #444466; font-size: 12px;")
+        self.placeholder.setStyleSheet(f"color: {self.theme['inactive']}; font-size: 12px;")
         layout.addWidget(self.placeholder, stretch=1)
 
         # Content widget (hidden until item selected)
@@ -284,7 +368,7 @@ class DetailPanel(QWidget):
         # Friendly name
         self.name_label = QLabel()
         self.name_label.setFont(QFont("Segoe UI", 13, QFont.Weight.Bold))
-        self.name_label.setStyleSheet("color: #e0e0ff;")
+        self.name_label.setStyleSheet(f"color: {self.theme['text_bright']};")
         self.name_label.setWordWrap(True)
         content_layout.addWidget(self.name_label)
 
@@ -299,22 +383,22 @@ class DetailPanel(QWidget):
         # Separator
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("color: #2a2a3e;")
+        sep.setStyleSheet(f"color: {self.theme['border_alt']};")
         content_layout.addWidget(sep)
 
         # Description
         self.desc_label = QLabel()
         self.desc_label.setFont(QFont("Segoe UI", 10))
-        self.desc_label.setStyleSheet("color: #aaaacc; line-height: 1.4;")
+        self.desc_label.setStyleSheet(f"color: {self.theme['label_secondary']}; line-height: 1.4;")
         self.desc_label.setWordWrap(True)
         content_layout.addWidget(self.desc_label)
 
         # Re-enabled warning (hidden by default)
         self.re_enabled_warning = QLabel("⚠️ This item turned itself back on after you disabled it.")
         self.re_enabled_warning.setWordWrap(True)
-        self.re_enabled_warning.setStyleSheet("""
-            background: #2a1a1a;
-            color: #ff5252;
+        self.re_enabled_warning.setStyleSheet(f"""
+            background: {self.theme['danger_tint_bg']};
+            color: {self.theme['danger']};
             border-radius: 4px;
             padding: 6px 8px;
             font-size: 10px;
@@ -324,7 +408,7 @@ class DetailPanel(QWidget):
 
         # Metadata section
         meta_frame = QFrame()
-        meta_frame.setStyleSheet("background: #13131f; border-radius: 6px;")
+        meta_frame.setStyleSheet(f"background: {self.theme['bg']}; border-radius: 6px;")
         meta_layout = QVBoxLayout(meta_frame)
         meta_layout.setContentsMargins(10, 8, 10, 8)
         meta_layout.setSpacing(4)
@@ -358,11 +442,11 @@ class DetailPanel(QWidget):
         row.setSpacing(6)
         key = QLabel(label_text + ":")
         key.setFont(QFont("Segoe UI", 9))
-        key.setStyleSheet("color: #444466;")
+        key.setStyleSheet(f"color: {self.theme['text_dim']};")
         key.setFixedWidth(80)
         val = QLabel("—")
         val.setFont(QFont("Segoe UI", 9))
-        val.setStyleSheet("color: #aaaacc;")
+        val.setStyleSheet(f"color: {self.theme['label_secondary']};")
         val.setWordWrap(True)
         row.addWidget(key)
         row.addWidget(val, stretch=1)
@@ -378,7 +462,7 @@ class DetailPanel(QWidget):
         self.name_label.setText(item.friendly_name)
 
         # Rating badge
-        color = rating_color(item.safety_rating)
+        color = rating_color(item.safety_rating, self.theme)
         label = RATING_LABELS.get(item.safety_rating, "Unknown")
         self.rating_badge.setText(label)
         self.rating_badge.setStyleSheet(f"""
@@ -410,45 +494,47 @@ class DetailPanel(QWidget):
         if not self.item:
             return
 
+        t = self.theme
+
         if self.item.is_system_critical:
             self.action_btn.setText("🔒  Protected — cannot be changed")
             self.action_btn.setEnabled(False)
-            self.action_btn.setStyleSheet("""
-                QPushButton {
-                    background: #1a1a2e;
-                    color: #444466;
-                    border: 1px solid #2a2a3e;
+            self.action_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: {t['surface_alt']};
+                    color: {t['text_dim']};
+                    border: 1px solid {t['border_alt']};
                     border-radius: 6px;
                     font-size: 11px;
-                }
+                }}
             """)
         elif self.item.enabled:
             self.action_btn.setText("Disable at startup")
             self.action_btn.setEnabled(True)
-            self.action_btn.setStyleSheet("""
-                QPushButton {
-                    background: #2a1a1a;
-                    color: #ff5252;
-                    border: 1px solid #ff525255;
+            self.action_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: {t['danger_tint_bg']};
+                    color: {t['danger']};
+                    border: 1px solid {t['danger']}55;
                     border-radius: 6px;
                     font-size: 11px;
                     padding: 4px 14px;
-                }
-                QPushButton:hover { background: #351f1f; }
+                }}
+                QPushButton:hover {{ background: {t['danger_tint_hover']}; }}
             """)
         else:
             self.action_btn.setText("Re-enable at startup")
             self.action_btn.setEnabled(True)
-            self.action_btn.setStyleSheet("""
-                QPushButton {
-                    background: #1a2a1a;
-                    color: #00e676;
-                    border: 1px solid #00e67655;
+            self.action_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: {t['action_success_bg']};
+                    color: {t['success']};
+                    border: 1px solid {t['success']}55;
                     border-radius: 6px;
                     font-size: 11px;
                     padding: 4px 14px;
-                }
-                QPushButton:hover { background: #1f3524; }
+                }}
+                QPushButton:hover {{ background: {t['action_success_hover']}; }}
             """)
 
     def _on_action(self):
@@ -475,22 +561,18 @@ class DetailPanel(QWidget):
         return names.get(source, source)
 
     def _secondary_btn_style(self):
-        return """
-            QPushButton {
-                background: #1e1e2e;
-                color: #ffb300;
-                border: 1px solid #ffb30055;
+        t = self.theme
+        return f"""
+            QPushButton {{
+                background: {t['surface']};
+                color: {t['warning']};
+                border: 1px solid {t['warning']}55;
                 border-radius: 6px;
                 font-size: 10px;
                 padding: 4px 14px;
-            }
-            QPushButton:hover { background: #252535; }
+            }}
+            QPushButton:hover {{ background: {t['surface_hover']}; }}
         """
-
-
-# ─────────────────────────────────────────────
-# Background scan worker
-# ─────────────────────────────────────────────
 
 
 # ─────────────────────────────────────────────
@@ -550,13 +632,20 @@ class MainWindow(QMainWindow):
         self.scanner = scanner
         self.toggle_engine = toggle_engine
         self.settings = settings
+        self.theme = get_theme(self.settings.get("theme", "dark"))
 
         self._items = []           # Current list of StartupItem
         self._rows = {}            # raw_name → StartupItemRow
         self._selected_item = None
         self._scan_thread = None
-        self._worker = None 
+        self._worker = None
+        self._scanning = False     # Tracks scan-in-progress without ever touching a
+                                    # QThread object that deleteLater() may have already
+                                    # destroyed (see apply_theme() for why this matters)
         self._disabled_by_user = set()   # Track what we've disabled (for re-enable detection)
+        self._declined_legacy_repairs = set()   # raw_names the user said "not now" to this session
+        self._last_scan_result = None    # Cached so apply_theme() can redraw the permission bar
+        self._last_scan_time_text = ""   # Cached so apply_theme() can restore "Last scan: ..."
 
         self.setWindowTitle("StartGuard")
         self.setWindowIcon(QIcon(resource_path("assets/icon.ico")))
@@ -575,6 +664,7 @@ class MainWindow(QMainWindow):
     # ─────────────────────────────────────────
 
     def _build_ui(self):
+        t = self.theme
         central = QWidget()
         self.setCentralWidget(central)
         root = QVBoxLayout(central)
@@ -586,24 +676,26 @@ class MainWindow(QMainWindow):
 
         title = QLabel("🛡️  StartGuard")
         title.setFont(QFont("Segoe UI", 17, QFont.Weight.Bold))
-        title.setStyleSheet("color: #e0e0ff;")
+        title.setStyleSheet(f"color: {t['text_bright']};")
         header.addWidget(title)
         header.addStretch()
 
         self.status_label = QLabel("Ready to scan")
-        self.status_label.setStyleSheet("color: #666680; font-size: 11px;")
+        self.status_label.setStyleSheet(f"color: {t['text_muted']}; font-size: 11px;")
         header.addWidget(self.status_label)
 
         self.scan_btn = QPushButton("Scan Now")
         self.scan_btn.setFixedHeight(34)
-        self.scan_btn.setStyleSheet(self._button_style("#4c4cff", "#6666ff"))
+        self.scan_btn.setStyleSheet(self._button_style(t['accent'], t['accent_hover'], text_color="#ffffff"))
         self.scan_btn.clicked.connect(self.start_scan)
         header.addWidget(self.scan_btn)
 
-        settings_btn = QPushButton("⚙")
+        settings_btn = QPushButton()
+        settings_btn.setIcon(make_gear_icon(t['text']))
+        settings_btn.setIconSize(QSize(16, 16))
         settings_btn.setFixedSize(34, 34)
         settings_btn.setToolTip("Settings")
-        settings_btn.setStyleSheet(self._button_style("#2a2a3e", "#3a3a5e"))
+        settings_btn.setStyleSheet(self._button_style(t['btn_neutral_bg'], t['btn_neutral_hover']))
         settings_btn.clicked.connect(self._on_settings)
         header.addWidget(settings_btn)
 
@@ -611,9 +703,9 @@ class MainWindow(QMainWindow):
 
         # ── Summary bar ─────────────────────────────────────────────
         self.summary_label = QLabel("")
-        self.summary_label.setStyleSheet("""
-            background: #1a1a2e;
-            color: #aaaacc;
+        self.summary_label.setStyleSheet(f"""
+            background: {t['surface_alt']};
+            color: {t['label_secondary']};
             border-radius: 6px;
             padding: 6px 12px;
             font-size: 11px;
@@ -623,9 +715,9 @@ class MainWindow(QMainWindow):
 
         # ── Permission warning bar ───────────────────────────────────
         self.permission_bar = QLabel("")
-        self.permission_bar.setStyleSheet("""
-            background: #2a2010;
-            color: #ffb300;
+        self.permission_bar.setStyleSheet(f"""
+            background: {t['warning_tint_bg']};
+            color: {t['warning']};
             border-radius: 6px;
             padding: 6px 12px;
             font-size: 11px;
@@ -636,7 +728,7 @@ class MainWindow(QMainWindow):
         # ── Main split: list + detail panel ─────────────────────────
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.setHandleWidth(1)
-        splitter.setStyleSheet("QSplitter::handle { background: #2a2a3e; }")
+        splitter.setStyleSheet(f"QSplitter::handle {{ background: {t['border_alt']}; }}")
 
         # Left: list container with header inside it so header resizes with the list
         list_container = QWidget()
@@ -647,7 +739,7 @@ class MainWindow(QMainWindow):
 
         # Table header — inside list_container so it tracks the splitter width
         self.table_header = QWidget()
-        self.table_header.setStyleSheet("background: #13131f;")
+        self.table_header.setStyleSheet(f"background: {t['bg']};")
         self.table_header.hide()
         header_row = QHBoxLayout(self.table_header)
         header_row.setContentsMargins(10, 4, 10, 4)
@@ -659,19 +751,19 @@ class MainWindow(QMainWindow):
 
         th_name = QLabel("Startup Item")
         th_name.setFont(QFont("Segoe UI", 9))
-        th_name.setStyleSheet("color: #555570;")
+        th_name.setStyleSheet(f"color: {t['inactive']};")
         header_row.addWidget(th_name, stretch=1)
 
         th_impact = QLabel("Impact")
         th_impact.setFont(QFont("Segoe UI", 9))
-        th_impact.setStyleSheet("color: #555570;")
+        th_impact.setStyleSheet(f"color: {t['inactive']};")
         th_impact.setFixedWidth(100)
         th_impact.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         header_row.addWidget(th_impact)
 
         th_state = QLabel("Toggle")
         th_state.setFont(QFont("Segoe UI", 9))
-        th_state.setStyleSheet("color: #555570;")
+        th_state.setStyleSheet(f"color: {t['inactive']};")
         th_state.setFixedWidth(46)
         th_state.setAlignment(Qt.AlignmentFlag.AlignCenter)
         header_row.addWidget(th_state)
@@ -702,7 +794,7 @@ class MainWindow(QMainWindow):
         splitter.addWidget(list_container)
 
         # Right: detail panel
-        self.detail_panel = DetailPanel()
+        self.detail_panel = DetailPanel(self.theme)
         self.detail_panel.toggle_requested.connect(self._on_toggle_requested)
         self.detail_panel.report_requested.connect(self._on_report_requested)
         splitter.addWidget(self.detail_panel)
@@ -715,14 +807,14 @@ class MainWindow(QMainWindow):
 
         self.changelog_btn = QPushButton("📋  Change Log")
         self.changelog_btn.setFixedHeight(30)
-        self.changelog_btn.setStyleSheet(self._button_style("#1a1a2e", "#222235"))
+        self.changelog_btn.setStyleSheet(self._button_style(t['btn_logs_bg'], t['btn_logs_hover']))
         self.changelog_btn.clicked.connect(self._on_view_changelog)
         bottom.addWidget(self.changelog_btn)
 
         bottom.addStretch()
 
         self.last_scan_label = QLabel("")
-        self.last_scan_label.setStyleSheet("color: #444466; font-size: 10px;")
+        self.last_scan_label.setStyleSheet(f"color: {t['text_dim']}; font-size: 10px;")
         bottom.addWidget(self.last_scan_label)
 
         root.addLayout(bottom)
@@ -739,7 +831,7 @@ class MainWindow(QMainWindow):
 
         empty_msg = QLabel("Click  Scan Now  to see what starts with your PC")
         empty_msg.setFont(QFont("Segoe UI", 12))
-        empty_msg.setStyleSheet("color: #444466;")
+        empty_msg.setStyleSheet(f"color: {t['inactive']};")
         empty_msg.setAlignment(Qt.AlignmentFlag.AlignCenter)
         empty_layout.addWidget(empty_msg)
 
@@ -747,14 +839,65 @@ class MainWindow(QMainWindow):
         self.list_layout.insertWidget(0, self.empty_state)
 
     # ─────────────────────────────────────────
+    # Live theme switching
+    # ─────────────────────────────────────────
+
+    def apply_theme(self):
+        """
+        Re-read the theme from settings and re-skin the entire window,
+        live, no restart. Rebuilds the UI from scratch (the simplest
+        reliable way to re-skin every widget, including the custom-
+        painted StatusDot) then restores anything that was on screen
+        before the switch — scan results, selection, warning banners,
+        and an in-progress scan's busy state — so changing the theme
+        never loses what you were looking at.
+        """
+        self.theme = get_theme(self.settings.get("theme", "dark"))
+        self.setStyleSheet(self._stylesheet())
+
+        selected_name = self._selected_item.raw_name if self._selected_item else None
+        scan_in_progress = self._scanning
+
+        self._build_ui()
+
+        # _build_ui() just replaced the central widget, which destroys every
+        # old row widget as a side effect of Qt's parent-child ownership.
+        # self._rows still points at those now-dead widgets until we clear
+        # it — _populate_list() below would otherwise try to clean up
+        # widgets that no longer exist.
+        self._rows = {}
+
+        if self._items:
+            self.table_header.show()
+            self._populate_list()
+            self._render_scan_summary()
+            if self._last_scan_time_text:
+                self.last_scan_label.setText(self._last_scan_time_text)
+            if self._last_scan_result and self._last_scan_result.needs_elevation:
+                self.permission_bar.setText("⚠️  " + self._last_scan_result.elevation_message)
+                self.permission_bar.show()
+            if selected_name and selected_name in self._rows:
+                self._selected_item = self._rows[selected_name].item
+                self._rows[selected_name].set_selected(True)
+                self.detail_panel.show_item(self._selected_item)
+
+        if scan_in_progress:
+            # A scan kicked off before Settings was opened is still running —
+            # keep the button reflecting that instead of snapping back to "Scan Now".
+            self.scan_btn.setText("Scanning…")
+            self.scan_btn.setEnabled(False)
+            self.status_label.setText("Scanning startup items…")
+
+    # ─────────────────────────────────────────
     # Scanning
     # ─────────────────────────────────────────
 
     def start_scan(self):
         """Kick off a background scan."""
-        if self._scan_thread and self._scan_thread.isRunning():
+        if self._scanning:
             return
 
+        self._scanning = True
         self.scan_btn.setText("Scanning…")
         self.scan_btn.setEnabled(False)
         self.status_label.setText("Scanning startup items…")
@@ -770,12 +913,20 @@ class MainWindow(QMainWindow):
                 self._worker.error.disconnect()
             except RuntimeError:
                 pass  # Already disconnected — safe to ignore
-            self._worker.deleteLater()
+            try:
+                self._worker.deleteLater()
+            except RuntimeError:
+                pass  # Already deleted — safe to ignore
             self._worker = None
 
-        if self._scan_thread is not None:
-            self._scan_thread.deleteLater()
-            self._scan_thread = None
+        # The previous thread already deletes itself once it finishes
+        # (see the finished.connect(deleteLater) wiring a few lines down).
+        # By the time we get here, _scanning being False guarantees that
+        # thread already finished and ran its own self-cleanup — calling
+        # deleteLater() on it again crashes with "wrapped C/C++ object has
+        # been deleted". Just drop the Python reference; there's nothing
+        # left for us to clean up on this side.
+        self._scan_thread = None
 
         self._scan_thread = QThread()
         self._worker = ScanWorker(self.scanner)
@@ -789,23 +940,48 @@ class MainWindow(QMainWindow):
 
     def _on_scan_complete(self, scan_result):
         """Handle completed scan — populate the list."""
+        self._scanning = False
         self._items = scan_result.items
+        self._last_scan_result = scan_result
         self.scan_btn.setText("Scan Now")
         self.scan_btn.setEnabled(True)
-        self.last_scan_label.setText(
-            f"Last scan: {datetime.datetime.now().strftime('%H:%M:%S')}"
-        )
+        self._last_scan_time_text = f"Last scan: {datetime.datetime.now().strftime('%H:%M:%S')}"
+        self.last_scan_label.setText(self._last_scan_time_text)
 
         # Check for items that re-enabled themselves
-        re_enabled = self.scanner.check_for_re_enabled(
-            list(self._disabled_by_user), scan_result
-        )
+        self.scanner.check_for_re_enabled(list(self._disabled_by_user), scan_result)
 
-        # Summary bar
+        self._render_scan_summary()
+
+        # Permission warning
+        if scan_result.needs_elevation:
+            self.permission_bar.setText("⚠️  " + scan_result.elevation_message)
+            self.permission_bar.show()
+
+        # Show table header
+        self.table_header.show()
+
+        # Populate rows
+        self._populate_list()
+
+        # Offer to clean up any leftover damage from the old disable-rename
+        # bug — one item at a time, with the list already visible behind it
+        # rather than blocking before the user sees anything.
+        self._offer_next_legacy_repair()
+
+    def _render_scan_summary(self):
+        """
+        Build the summary bar / status text from self._items.
+        Pulled out of _on_scan_complete() so apply_theme() can call it
+        too when restoring the display after a live theme switch —
+        re-enabled count is read straight from each item's own
+        re_enabled_detected flag, so this works equally well right
+        after a scan or when redrawing from cache.
+        """
         total = len(self._items)
         slow = sum(1 for i in self._items if i.boot_impact == "slows_boot" and i.enabled)
         watch = sum(1 for i in self._items if i.safety_rating == "watch_out")
-        re_count = len(re_enabled)
+        re_count = sum(1 for i in self._items if i.re_enabled_detected)
 
         parts = [f"{total} items start with your PC"]
         if slow:
@@ -819,18 +995,8 @@ class MainWindow(QMainWindow):
         self.summary_label.show()
         self.status_label.setText(f"{total} startup items found")
 
-        # Permission warning
-        if scan_result.needs_elevation:
-            self.permission_bar.setText("⚠️  " + scan_result.elevation_message)
-            self.permission_bar.show()
-
-        # Show table header
-        self.table_header.show()
-
-        # Populate rows
-        self._populate_list()
-
     def _on_scan_error(self, error_msg):
+        self._scanning = False
         self.scan_btn.setText("Scan Now")
         self.scan_btn.setEnabled(True)
         self.status_label.setText("Scan failed")
@@ -841,11 +1007,17 @@ class MainWindow(QMainWindow):
 
     def _populate_list(self):
         """Clear and rebuild the item list from self._items."""
-        # Remove existing rows
-        while self.list_layout.count() > 1:
-            item = self.list_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        # Remove existing rows. We track every row widget explicitly in
+        # self._rows, so we remove exactly those rather than walking the
+        # layout positionally — walking the layout used to also catch
+        # empty_state (it sits at position 0) on the very first scan,
+        # permanently deleting a widget we only ever meant to hide. That
+        # didn't crash immediately (deleteLater() defers the actual
+        # destruction), but the very next scan's .hide() call below would
+        # then hit an already-deleted object.
+        for row in self._rows.values():
+            self.list_layout.removeWidget(row)
+            row.deleteLater()
         self._rows.clear()
 
         # Hide empty state
@@ -860,7 +1032,7 @@ class MainWindow(QMainWindow):
         sorted_items = sorted(self._items, key=sort_key)
 
         for item in sorted_items:
-            row = StartupItemRow(item)
+            row = StartupItemRow(item, self.theme)
             row.clicked.connect(self._on_row_clicked)
             row.toggled.connect(self._on_toggle_requested)
             self._rows[item.raw_name] = row
@@ -880,6 +1052,70 @@ class MainWindow(QMainWindow):
         self.detail_panel.show_item(item)
 
     # ─────────────────────────────────────────
+    # Plain-English Approve/Decline confirmation
+    # ─────────────────────────────────────────
+    # Reusable for any case where StartGuard wants to do something beyond
+    # a normal toggle and would rather ask first than act silently — the
+    # legacy-repair cleanup below is the first user of this, but it's
+    # written generically so future cases (e.g. catching other software's
+    # self-preservation tricks) can reuse it without rebuilding the dialog.
+
+    def _ask_approval(self, title: str, message: str, approve_text="Approve", decline_text="Decline") -> bool:
+        msg = QMessageBox(self)
+        msg.setWindowTitle(title)
+        msg.setText(message)
+        msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        msg.button(QMessageBox.StandardButton.Yes).setText(approve_text)
+        msg.button(QMessageBox.StandardButton.No).setText(decline_text)
+        msg.setStyleSheet(self._stylesheet())
+        return msg.exec() == QMessageBox.StandardButton.Yes
+
+    # ─────────────────────────────────────────
+    # Legacy disable-bug cleanup offer
+    # ─────────────────────────────────────────
+
+    def _offer_next_legacy_repair(self):
+        """
+        Checks the current scan for any item still carrying the mangled
+        registry name left over from the old (fixed) disable-rename bug,
+        and offers to clean it up — honestly, as StartGuard's own past
+        mistake, not framed as catching misbehaving software. One item
+        at a time; declining just skips it for the rest of this session
+        rather than asking again on every scan.
+        """
+        for item in self._items:
+            if not item.legacy_disable_bug_name:
+                continue
+            if item.raw_name in self._declined_legacy_repairs:
+                continue
+
+            approved = self._ask_approval(
+                "StartGuard found something",
+                (
+                    f"<b>{item.friendly_name}</b><br><br>"
+                    f"StartGuard found a leftover naming mess on this item's startup entry, "
+                    f"caused by a bug in an <b>older version of StartGuard itself</b> — not "
+                    f"anything wrong with your PC, and not something {item.friendly_name} did.<br><br>"
+                    f"Fixing it just restores the entry's original name. It won't change whether "
+                    f"{item.friendly_name} is currently allowed to start with your PC — you can "
+                    f"still toggle that separately afterwards.<br><br>"
+                    f"Want StartGuard to clean this up?"
+                ),
+            )
+
+            if approved:
+                result = self.toggle_engine.repair_legacy_disable_bug(item)
+                self._show_toast(result.message)
+                if result.success:
+                    # Refresh shortly after so the cleaned-up item shows
+                    # correctly under its real name on the next pass.
+                    QTimer.singleShot(400, self.start_scan)
+            else:
+                self._declined_legacy_repairs.add(item.raw_name)
+
+            break  # one dialog at a time — any others get picked up next scan
+
+    # ─────────────────────────────────────────
     # Toggle
     # ─────────────────────────────────────────
 
@@ -891,20 +1127,17 @@ class MainWindow(QMainWindow):
         """
         # Confirmation for unknown items being disabled
         if not new_enabled and item.safety_rating == "unknown":
-            msg = QMessageBox(self)
-            msg.setWindowTitle("Are you sure?")
-            msg.setText(
-                f"<b>{item.friendly_name}</b><br><br>"
-                f"StartGuard doesn't recognise this item, so it can't confirm it's safe to disable.<br><br>"
-                f"You can turn it back on any time."
+            approved = self._ask_approval(
+                "Are you sure?",
+                (
+                    f"<b>{item.friendly_name}</b><br><br>"
+                    f"StartGuard doesn't recognise this item, so it can't confirm it's safe to disable.<br><br>"
+                    f"You can turn it back on any time."
+                ),
+                approve_text="Disable anyway",
+                decline_text="Keep it on",
             )
-            msg.setStandardButtons(
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel
-            )
-            msg.button(QMessageBox.StandardButton.Yes).setText("Disable anyway")
-            msg.button(QMessageBox.StandardButton.Cancel).setText("Keep it on")
-            msg.setStyleSheet(self._stylesheet())
-            if msg.exec() != QMessageBox.StandardButton.Yes:
+            if not approved:
                 return
 
         # Perform toggle
@@ -1006,19 +1239,19 @@ class MainWindow(QMainWindow):
 
         title = QLabel("What StartGuard has changed")
         title.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
-        title.setStyleSheet("color: #e0e0ff; padding-bottom: 6px;")
+        title.setStyleSheet(f"color: {self.theme['text_bright']}; padding-bottom: 6px;")
         layout.addWidget(title)
 
         log_text = QTextEdit()
         log_text.setReadOnly(True)
         log_text.setFont(QFont("Consolas", 9))
-        log_text.setStyleSheet("""
-            QTextEdit {
-                background: #13131f;
-                color: #aaaacc;
-                border: 1px solid #2a2a3e;
+        log_text.setStyleSheet(f"""
+            QTextEdit {{
+                background: {self.theme['bg']};
+                color: {self.theme['label_secondary']};
+                border: 1px solid {self.theme['border_alt']};
                 border-radius: 6px;
-            }
+            }}
         """)
 
         if not history:
@@ -1037,52 +1270,59 @@ class MainWindow(QMainWindow):
 
         close_btn = QPushButton("Close")
         close_btn.setFixedHeight(32)
-        close_btn.setStyleSheet(self._button_style("#2a2a3e", "#3a3a5e"))
+        close_btn.setStyleSheet(self._button_style(self.theme['btn_neutral_bg'], self.theme['btn_neutral_hover']))
         close_btn.clicked.connect(dialog.accept)
         layout.addWidget(close_btn)
 
         dialog.exec()
 
     # ─────────────────────────────────────────
-    # Settings placeholder
+    # Settings
     # ─────────────────────────────────────────
 
     def _on_settings(self):
         from settings_dialog import SettingsDialog
         dialog = SettingsDialog(self.settings, parent=self)
-        dialog.exec()
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            # Re-theme live regardless of which fields changed — harmless
+            # no-op if the theme itself didn't change, matches PingGuard's
+            # "always re-theme after Settings is saved" pattern.
+            self.apply_theme()
 
     # ─────────────────────────────────────────
-    # Stylesheet — matches PingGuard exactly
+    # Stylesheet — theme-aware
     # ─────────────────────────────────────────
 
     def _stylesheet(self):
-        return """
-            QMainWindow, QWidget {
-                background-color: #13131f;
-                color: #e0e0e0;
-            }
-            QScrollBar:vertical {
-                background: #1a1a2e;
+        t = self.theme
+        return f"""
+            QMainWindow, QWidget {{
+                background-color: {t['bg']};
+                color: {t['text']};
+            }}
+            QScrollBar:vertical {{
+                background: {t['scrollbar_track']};
                 width: 6px;
                 border-radius: 3px;
-            }
-            QScrollBar::handle:vertical {
-                background: #3a3a5e;
+            }}
+            QScrollBar::handle:vertical {{
+                background: {t['scrollbar_handle']};
                 border-radius: 3px;
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
                 height: 0;
-            }
-            QMessageBox {
-                background: #1e1e2e;
-            }
-            QMessageBox QLabel {
-                color: #e0e0e0;
-            }
+            }}
+            QMessageBox {{
+                background: {t['surface']};
+            }}
+            QMessageBox QLabel {{
+                color: {t['text']};
+            }}
         """
 
-    def _button_style(self, bg, hover_bg, text_color="#e0e0e0"):
+    def _button_style(self, bg, hover_bg, text_color=None):
+        if text_color is None:
+            text_color = self.theme['text']
         return f"""
             QPushButton {{
                 background: {bg};
@@ -1094,5 +1334,5 @@ class MainWindow(QMainWindow):
             }}
             QPushButton:hover {{ background: {hover_bg}; }}
             QPushButton:pressed {{ background: {bg}; }}
-            QPushButton:disabled {{ color: #444466; }}
+            QPushButton:disabled {{ color: {self.theme['text_dim']}; }}
         """
