@@ -10,9 +10,13 @@ Nested helper widgets below don't have settings access, so they take
 the resolved `theme` dict as a constructor/function parameter instead.
 """
 
+import sys
+from pathlib import Path
+
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QLineEdit, QCheckBox, QComboBox, QFrame, QWidget, QSizePolicy
+    QLineEdit, QCheckBox, QComboBox, QFrame, QWidget, QSizePolicy,
+    QTextEdit
 )
 from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtGui import QFont, QDesktopServices
@@ -209,6 +213,23 @@ def _link(text: str, url: str, theme: dict) -> QLabel:
 
 
 # ─────────────────────────────────────────────
+# Locate LICENSE.txt — bundled alongside the app.
+# Mirrors core/database.py's _get_database_path()
+# frozen/source detection pattern.
+# ─────────────────────────────────────────────
+
+def _license_path() -> Path:
+    if getattr(sys, "frozen", False):
+        # PyInstaller bundle — bundled files sit in _MEIPASS
+        base = Path(sys._MEIPASS)
+    else:
+        # Running from source — LICENSE.txt is at the project root,
+        # same folder as this file
+        base = Path(__file__).parent
+    return base / "LICENSE.txt"
+
+
+# ─────────────────────────────────────────────
 # Main Settings Dialog
 # ─────────────────────────────────────────────
 
@@ -335,6 +356,30 @@ class SettingsDialog(QDialog):
         advanced.add_widget(self.claude_field)
         advanced.add_widget(_link("Get an API key at anthropic.com", "https://console.anthropic.com/", self.theme))
 
+        layout.addWidget(_divider(self.theme))
+
+        # ── LICENSE SECTION (collapsible) ────────────────────────────
+        license_section = CollapsibleSection("License", self.theme)
+        layout.addWidget(license_section)
+
+        self.license_view = QTextEdit()
+        self.license_view.setReadOnly(True)
+        self.license_view.setPlainText(self._load_license_text())
+        self.license_view.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
+        self.license_view.setFont(QFont("Consolas", 8))
+        self.license_view.setMinimumHeight(200)
+        self.license_view.setMaximumHeight(240)
+        self.license_view.setStyleSheet(f"""
+            QTextEdit {{
+                background: {self.theme['bg']};
+                color: {self.theme['text_bright']};
+                border: 1px solid {self.theme['border_alt']};
+                border-radius: 6px;
+                padding: 8px;
+            }}
+        """)
+        license_section.add_widget(self.license_view)
+
         layout.addStretch()
         layout.addWidget(_divider(self.theme))
 
@@ -374,6 +419,22 @@ class SettingsDialog(QDialog):
         self.settings.set("claude_api_key", claude_key)
 
         self.accept()
+
+    # ─────────────────────────────────────────
+    # License text
+    # ─────────────────────────────────────────
+
+    def _load_license_text(self) -> str:
+        """
+        Read LICENSE.txt verbatim. Explicitly opened as UTF-8 so any
+        non-ASCII characters (the £ symbol currently in the file) render
+        correctly regardless of the OS's default locale encoding.
+        """
+        try:
+            with open(_license_path(), "r", encoding="utf-8") as f:
+                return f.read()
+        except OSError as e:
+            return f"LICENSE.txt could not be loaded ({e})."
 
     # ─────────────────────────────────────────
     # Styles

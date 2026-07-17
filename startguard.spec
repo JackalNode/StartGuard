@@ -29,6 +29,7 @@ a = Analysis(
         ('core/*.py', 'core'),                   # Core module sources (belt-and-braces)
         ('platforms/*.py', 'platforms'),         # Platform stubs
         ('constants.py', '.'),                   # App-level constants (webhook URL etc.)
+        ('LICENSE.txt', '.'),                     # License text shown in Settings — read at runtime
         ('main_window.py', '.'),                 # Main UI module
         ('settings.py', '.'),                    # Settings module
         ('settings_dialog.py', '.'),             # Settings UI dialog

@@ -1,10 +1,9 @@
-JackalNode Software Licence
+StartGuard Licence
 Version 1.0
 
 Copyright (c) 2025 JackalNode. All rights reserved.
 
 ---
-
 PLAIN ENGLISH SUMMARY
 ---------------------
 Free for personal use, always.
@@ -14,7 +13,14 @@ You cannot resell or repackage this software.
 
 ---
 
-1. PERSONAL USE
+1. WHAT THIS COVERS
+
+This licence applies to StartGuard, and to any other free
+JackalNode application (currently including PingGuard).
+
+---
+
+2. PERSONAL USE
 
 You may use, copy, and share this software for personal,
 non-commercial purposes at no cost, forever.
@@ -23,7 +29,7 @@ No subscriptions. No licence keys. No expiry dates.
 
 ---
 
-2. SMALL BUSINESS AND STARTUP USE
+3. SMALL BUSINESS AND STARTUP USE
 
 You may use this software free of charge if your organisation
 meets ALL of the following:
@@ -31,12 +37,12 @@ meets ALL of the following:
   - Fewer than 10 employees or contractors, AND
   - Annual revenue or funding under £100,000 (or equivalent)
 
-If you outgrow these limits, you need a commercial licence
-(see Section 4).
+If you outgrow these limits, you need written permission
+(see Section 5).
 
 ---
 
-3. WHAT YOU CANNOT DO
+4. WHAT YOU CANNOT DO
 
 Regardless of your size or purpose, you may not:
 
@@ -49,18 +55,17 @@ Regardless of your size or purpose, you may not:
 
 ---
 
-4. COMMERCIAL USE (LARGER ORGANISATIONS)
+5. COMMERCIAL USE (LARGER ORGANISATIONS)
 
-If you are an organisation that does not qualify under
-Section 2, you must contact us before using this software.
+If your organisation doesn't qualify under Section 3, contact
+us before using this software. We're open to licensing
+arrangements - we just want to know.
 
-We are open to licensing arrangements. We just want to know.
-
-Contact: [nathan.louter25@gmail.com]
+Contact: jackalnode@gmail.com
 
 ---
 
-5. CONTRIBUTIONS
+6. CONTRIBUTIONS
 
 If you submit code, fixes, or improvements to this project,
 you agree that your contributions are made under the same
@@ -69,20 +74,19 @@ in the software.
 
 ---
 
-6. NO WARRANTY
+7. NO WARRANTY
 
 This software is provided as-is, with no guarantees of any
-kind. Use it at your own risk.
-
-JackalNode is not liable for any damage, data loss, or
-problems caused by using this software.
+kind. Use it at your own risk. JackalNode is not liable for
+any damage, data loss, or problems caused by using this
+software.
 
 ---
 
-7. GOVERNING LAW
+8. GOVERNING LAW
 
-This licence is governed by the laws of South Africa.
-Any disputes will be resolved under South African jurisdiction.
+This licence is governed by the laws of South Africa. Any
+disputes will be resolved under South African jurisdiction.
 
 ---
 

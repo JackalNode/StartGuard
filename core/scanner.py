@@ -472,9 +472,20 @@ class StartupScanner:
         an unrelated HKCU entry that happened to share the same name).
 
         Everything else still keys off the cleaned-up raw_name as before.
+
+        Scheduled tasks get their own branch for the same reason as
+        registry/Task Manager above: _parse_exe_name can legitimately
+        produce the same raw_name for two unrelated tasks (e.g. two
+        different apps both installed under an unquoted "...\\Program
+        Files...\\" path). The task's own file path (source_path) is
+        always unique per task, so key on that instead — never collide,
+        never silently drop one task in favour of another.
         """
         if item.source in self.REGISTRY_OR_TASKMGR_SOURCES:
             return f"regval:{item.registry_hive}:" + item.source_path.strip().lower()
+
+        if item.source == "scheduled_task":
+            return "task:" + item.source_path.strip().lower()
 
         name = item.raw_name.strip().lower()
         name = os.path.basename(name)

@@ -202,12 +202,26 @@ SYSTEM_CRITICAL_PROCESSES = {
 def _parse_exe_name(command: str) -> str:
     """
     Extract just the executable filename from a full command string.
-    Handles: quoted paths, unquoted paths, rundll32 wrappers.
+    Handles: quoted paths, unquoted paths (including ones containing
+    spaces), rundll32 wrappers.
+
+    Task Scheduler's <Command> value is very often an unquoted full
+    path even when it contains spaces, so naively splitting on the
+    first space truncates paths like "C:\\Program Files (x86)\\MSI
+    Afterburner\\MSIAfterburner.exe" down to just "Program". Instead
+    the candidate path is grown one whitespace-separated token at a
+    time and resolved as soon as either the token just added ends in
+    ".exe" (the normal terminator for a real executable path) or the
+    candidate built so far already exists as a file on disk (covers
+    extensionless executables). If neither ever matches, falls back
+    to the first token — same as the old behaviour — so this never
+    raises and never returns an empty string for a non-empty command.
 
     Examples:
       '"C:\\Program Files\\Spotify\\Spotify.exe" --autostart'  → 'Spotify.exe'
       'C:\\Windows\\System32\\ctfmon.exe'                       → 'ctfmon.exe'
       'rundll32.exe shell32.dll,..  '                           → 'rundll32.exe'
+      'C:\\Program Files (x86)\\MSI Afterburner\\MSIAfterburner.exe /s' → 'MSIAfterburner.exe'
     """
     if not command:
         return ""
@@ -221,9 +235,26 @@ def _parse_exe_name(command: str) -> str:
             path = command[1:end_quote]
             return Path(path).name
 
-    # Unquoted — take the first token (split on space)
-    first_token = command.split()[0] if command.split() else command
-    return Path(first_token).name
+    # Unquoted — grow the candidate token by token instead of splitting
+    # on the first space, since a real path can itself contain spaces.
+    tokens = command.split()
+    if not tokens:
+        return command
+
+    candidate = ""
+    for token in tokens:
+        candidate = f"{candidate} {token}" if candidate else token
+        if token.lower().endswith(".exe"):
+            return Path(candidate).name
+        try:
+            if Path(candidate).is_file():
+                return Path(candidate).name
+        except OSError:
+            pass  # Malformed path fragment — keep growing
+
+    # No .exe token and nothing on disk matched — fall back to the
+    # first token rather than guessing further.
+    return Path(tokens[0]).name
 
 
 def _is_system_critical(exe_name: str) -> bool:
