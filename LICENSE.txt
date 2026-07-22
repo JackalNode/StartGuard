@@ -1,4 +1,4 @@
-StartGuard Licence
+JackalNode Licence
 Version 1.0
 
 Copyright (c) 2025 JackalNode. All rights reserved.
@@ -15,8 +15,8 @@ You cannot resell or repackage this software.
 
 1. WHAT THIS COVERS
 
-This licence applies to StartGuard, and to any other free
-JackalNode application (currently including PingGuard).
+This licence applies to StartGuard, PingGuard, and any other free
+JackalNode application.
 
 ---
 
@@ -59,7 +59,7 @@ Regardless of your size or purpose, you may not:
 
 If your organisation doesn't qualify under Section 3, contact
 us before using this software. We're open to licensing
-arrangements - we just want to know.
+arrangements — we just want to know.
 
 Contact: jackalnode@gmail.com
 
@@ -92,3 +92,4 @@ disputes will be resolved under South African jurisdiction.
 
 If anything here is unclear, just ask.
 jackalnode.com
+Last updated: 22.07.2026
