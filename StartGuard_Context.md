@@ -287,6 +287,7 @@ Windows caches `.exe` icons aggressively. If a new icon doesn't appear: (1) chec
 | 13 | **Theme system**: ported PingGuard's light/dark token pattern into `theme.py`, `settings_dialog.py`, `main_window.py`. Hit and fixed 4 bugs along the way (scan button contrast, unicode gear icon, two separate stale-QThread crashes, `empty_state` widget deletion). **Discord/Edge disable investigation**: found and fixed three separate real bugs — dedup matching the wrong field (Bug 1), `registry_hklm_wow64` never being in the safe approval-key list and falling back to a rename mechanism that doesn't actually disable anything (Bug 2), and a database key collision mislabeling Discord as StartGuard's own updater (Bug 3). Built a disclosed, opt-in legacy-bug repair feature with a new reusable `_ask_approval()` confirmation pattern. **MSI Afterburner/RTSS** investigated and confirmed to use a startup mechanism StartGuard doesn't currently read (likely a Windows Service) — deliberately parked for a dedicated future session. **Version bumped to v1.0.0** — first major post-launch update. |
 | 14 (17.07.2026) | Post-reinstall verification session (Windows reinstalled after an unrelated malware incident; project folder confirmed intact on separate E: drive, full clean audit already done in PingGuard's parallel session). Re-verified Session 13's Discord/Edge disable fix through a real restart + registry + Task Manager check — confirmed NOT a regression. Investigated MSI Afterburner/RTSS not appearing in scans: ruled out Services/Drivers, traced to Scheduled Tasks, found and fixed a real unquoted-path parsing bug in `_parse_exe_name()` that was silently discarding 11 of 17 real scheduled-task startup items via a dedup collision (not a Windows Service, as originally theorised in Session 13's parking note — that theory is now closed out as wrong). Full root-cause detail in the "Scheduled Task Parsing Bug" section below. Updated LICENSE.txt (business contact, StartGuard/free-app scoping) and added an in-app License viewer to Settings. Shipped as **v1.0.1** — GitHub Release, itch.io upload, and devlog post all completed. |
 | 26 | **Startup Watch mechanism validation**: scheduled-task mechanism tested end-to-end via live PowerShell testing on the dev machine (not assumed) — elevation (LogonType S4U + RunLevel Highest, confirmed via `whoami /groups` showing High Mandatory Level, no UAC prompt, no stored password), locked screen (confirmed), full logoff (confirmed, cleanly — fired to the exact scheduled second), and sleep-gap catch-up via StartWhenAvailable (confirmed to fire after a real sleep/resume cycle, though exact wake-to-fire latency remains unmeasured). **Unrelated dev-machine bug**: uncovered and partially investigated an instant wake-from-sleep bug (machine waking 2–4s after sleeping, unprompted, on at least three occasions) — device wake-arming, Modern Standby, and wake timers all ruled out, root cause not yet identified, parked for a dedicated diagnostic session. Flagged the uninstaller's missing scheduled-task cleanup as a required future build item once Startup Watch is implemented. |
+| 27 | **Startup Watch fully implemented, live-verified, and shipped as v1.1.0**: scan cadence fixed at daily (scan cost negligible, only real variable is detection lag); install-time opt-in reframed from an Inno Setup wizard screen to a settings-driven in-app `StartupWatchOptInDialog` gated on a new `startup_watch_enabled` key, re-prompting until explicitly answered; baseline implemented as write-once (never updated after first scan — acknowledging the banner clears pending items but does not add them to the baseline, a deliberate anti-rushed-click safeguard, with a dedicated "add to baseline" mechanism explicitly left unscoped for future work); banner acknowledgment requires an explicit view-then-acknowledge dialog with no blind-dismiss path; scheduled task registered via hand-built Task Scheduler XML using the Session 26-validated S4U/HighestAvailable mechanism, with `startup_watch_enabled` resetting to `None` (not `False`) on registration failure; headless `--startup-watch-scan` CLI entry point added ahead of QApplication/elevation to avoid a stray UAC prompt; uninstaller now unregisters the scheduled task via a new `CurUninstallStepChanged` step, and confirmed the existing AppData full-wipe already covers `settings.json`'s Startup Watch keys. Full end-to-end live verification performed on real hardware including a real compiled installer's install → task-exists → uninstall → task-gone cycle. Version bumped to **v1.1.0** (not yet tagged/released). |
 
 ---
 
@@ -356,7 +357,7 @@ with the two apps that happened to surface it.
 
 ---
 
-## Startup Watch — Scoped, Not Yet Built (Session 25)
+## Startup Watch — Built, Tested, and Shipping as v1.1.0 (Sessions 25–27)
 
 Replaces the previously-planned "Smart Profiles" feature — Smart Profiles
 was scoped in detail this session and deliberately scrapped. Reasoning:
@@ -402,14 +403,11 @@ of an unaddressed banner from a later scan cycle.
   otherwise gets for free. Doesn't solve a real gap in the
   banner-on-next-open design — skipped.
 
-**Uninstaller — required future work (Session 26):** the scheduled task
-must be explicitly unregistered by the uninstaller as part of full-wipe-
-on-uninstall. Not currently built — Startup Watch doesn't exist in code
-yet. A scheduled task lives outside the app folder/AppData/registry-keys
-scope the existing "full wipe on uninstall" rule already covers (see
-Confirmed Architecture Decisions), so this needs its own explicit line
-item added to the uninstaller's checklist whenever Startup Watch is
-actually implemented.
+**Uninstaller — implemented (Session 27):** the scheduled task is now
+explicitly unregistered by the uninstaller as part of full-wipe-on-
+uninstall — see the Session 27 subsection below for the full
+implementation detail. This closes out the future-work item flagged
+here in Session 26.
 
 ### Startup Watch — Scheduled Task Mechanism: Tested & Confirmed (Session 26)
 
@@ -446,18 +444,113 @@ separate things confirmed:
   by the time the user opens the app after waking from sleep — there is
   an unknown delay window.
 
-**Open items, not yet decided:** the core scheduled-task mechanism
-(elevation, locked screen, logoff, sleep-gap catch-up) is now tested and
-confirmed viable (Session 26, see above) — no longer open. Still open:
-scan cadence (candidate: every 2–3 months, not yet fixed), exact
-install-time opt-in wording, whether the "last saved scan" comparison
-baseline is the prior scheduled scan only or also updates on manual
-scans, the unquantified wake-to-fire latency gap for StartWhenAvailable
-catch-up (see above), and the dev-machine instant-wake-from-sleep bug
-uncovered during this session's testing (see Known Issue section below —
-not yet connected to Startup Watch's design, may or may not turn out to
-be relevant). Not yet built — scoping and mechanism validation only,
-ready for implementation next session.
+**Open items — resolved (Session 27):** scan cadence, the install-time
+opt-in mechanism/wording, and the baseline-update rule were all decided
+and implemented this session — see the Session 27 subsection below for
+each decision and its reasoning. The unquantified wake-to-fire latency
+gap for StartWhenAvailable catch-up (see above) remains unmeasured and
+is not resolved by this session's work. The dev-machine instant-wake-
+from-sleep bug (see Known Issue section below) also remains open and
+unconnected to Startup Watch's design.
+
+---
+
+### Startup Watch — Full Implementation & Live Verification, Shipped as v1.1.0 (Session 27)
+
+**Scan cadence: daily.** Decided over the previously-open 2–3 month
+candidate. Reasoning: the scan itself is effectively free — no
+persistent process, sub-second work — so the only real cost variable is
+detection lag, and there's no engineering justification for choosing
+anything longer than daily once the mechanism itself is this cheap.
+Known accepted limitation: Task Scheduler's default "No Start On
+Batteries" condition is left at its default (never validated for
+battery behavior in Session 26), so a laptop running on battery when the
+daily trigger fires will skip that day's scan — StartWhenAvailable does
+not guarantee catch-up for a condition-based miss the same way it does
+for a sleep-based miss.
+
+**Install-time opt-in reframed as settings-driven, not
+installer-driven.** No Inno Setup wizard screen was added. Instead, a
+new `startup_watch_enabled` key in `settings.py` (`None` = never asked,
+`True`/`False` = answered) drives an in-app `StartupWatchOptInDialog`,
+shown once on launch whenever the key is `None` — this fires identically
+for fresh installs and upgraders via the existing settings migration
+path, avoiding a second consent code path. Exact copy: "Watch for new
+startup items — runs a quick check once a day in the background, no
+popups. You'll see a note next time you open StartGuard if anything new
+shows up." The dialog re-prompts on every launch until explicitly
+answered — both `closeEvent` and reject are explicitly overridden to
+leave the answer unset, verified live.
+
+**Baseline update rule: write-once, not reviewed-vs-unreviewed.** The
+baseline is established only on the very first scan and is never updated
+afterward by this version. Acknowledging the banner (via the mandatory
+view-then-acknowledge flow, see below) only clears
+`startup_watch_pending_items` — it does not add acknowledged items to
+the baseline. This is a deliberate v1 design choice, not a bug: the same
+newly-approved item will re-surface as "new" on a future scan if nothing
+else changes, a known, accepted nuisance traded off against the
+alternative risk — a rushed "OK, got it" click silently and permanently
+whitelisting something the user didn't actually mean to approve.
+Conservative-failure-mode reasoning: for a security-adjacent feature,
+re-asking is a smaller cost than a careless permanent approval.
+
+**Explicitly unscoped future work:** a deliberate "add to baseline"
+mechanism, separate from casual acknowledgment, designed specifically to
+resist being triggered by a rushed or careless click (e.g. extra
+confirmation friction, a distinct and clearly-labeled action rather than
+reusing "OK, got it"). Not designed this session — flagged for dedicated
+future scoping, not implied or partially built.
+
+**Banner acknowledgment requires an explicit view-then-acknowledge
+action** (`StartupWatchItemsDialog`, reusing the pattern from
+`_offer_next_legacy_repair`), never a blind dismiss — the banner itself
+has no close/X control, only a "View" button. Verified live: closing the
+item-review dialog via X/Esc leaves the banner and `pending_items`
+untouched; only clicking "OK, got it" clears `pending_items` and hides
+the banner.
+
+**Scheduled task registration** built on the Session 26-validated
+mechanism (LogonType S4U, RunLevel HighestAvailable, DaysInterval=1,
+StartWhenAvailable=true, WakeToRun=false), registered via a hand-built
+Task Scheduler XML — `schtasks` has no CLI flag for `StartWhenAvailable`,
+so XML registration was required rather than trusting undocumented CLI
+defaults. Registration happens only after explicit opt-in (`_on_yes()`),
+with failure handling: if registration fails, `startup_watch_enabled`
+resets to `None` (not `False`) so the user is correctly re-prompted
+rather than the failure being silently mistaken for a deliberate
+decline.
+
+**Headless scan entry point:** a `--startup-watch-scan` CLI flag
+branches in `main.py` before `QApplication`/`MainWindow` construction
+and before `request_elevation()` — the task is already running elevated
+via S4U, so calling `request_elevation()` would risk an unwanted UAC
+prompt on a locked or logged-off session.
+
+**Uninstaller:** `schtasks /delete` wired into
+`startguard_installer.iss` via a new `CurUninstallStepChanged` procedure
+at the `usUninstall` step, using a hardcoded task-name constant
+cross-referenced by comment to `startup_watch.py`'s
+`STARTUP_WATCH_TASK_NAME` (Inno Setup cannot import Python constants, so
+this is a deliberately flagged manual-sync duplicate, not a silent one).
+Failure to find the task — the common case, since Startup Watch is
+opt-in and off by default — is silently treated as a normal no-op, not
+an error. Confirmed the existing AppData full-wipe-on-uninstall
+(`{userappdata}\StartGuard` recursive delete) already covers
+`settings.json`, and therefore both Startup Watch settings keys, with no
+additional uninstaller work needed for that specifically.
+
+**Full end-to-end live verification** performed this session on real
+hardware: baseline establishment (first-run, no-diff), new-item
+detection (fake registry item added, correctly flagged), pending-item
+clearing on acknowledgment, the banner display/view/acknowledge cycle
+including the no-blind-dismiss guarantee (X-close leaves state
+untouched, confirmed live), and the complete install → task-exists →
+uninstall → task-gone cycle via a real compiled installer, not just
+source-run testing.
+
+**Shipping as v1.1.0** (bumped in `main.py`, `startguard_installer.iss`,
+and `settings.py`) — not yet tagged or released as of this doc update.
 
 ---
 
