@@ -623,6 +623,173 @@ class ScanWorker(QObject):
 
 
 # ─────────────────────────────────────────────
+# Startup Watch — opt-in prompt (first launch only)
+# ─────────────────────────────────────────────
+
+class StartupWatchOptInDialog(QDialog):
+    """
+    Explicit three-state Yes/No/dismissed dialog for the Startup Watch
+    opt-in prompt.
+
+    Deliberately NOT built on _ask_approval()/QMessageBox: a QMessageBox
+    with only Yes/No standard buttons auto-assigns "No" as its implicit
+    escape button (Qt rule: when there's no Cancel/RejectRole button but
+    exactly one NoRole button, that button becomes the escape button), so
+    pressing Esc, Alt-F4, or the title-bar X would silently register as
+    clicking "No" — indistinguishable from an explicit decline. That's
+    wrong here: dismissing this dialog must leave startup_watch_enabled
+    untouched (still None, so it re-prompts next launch), not write False.
+
+    self.answer stays None unless a button is actually clicked. closeEvent()
+    and reject() are both overridden explicitly below — not just left
+    unwired — so this guarantee holds even if this dialog is edited later.
+    """
+
+    def __init__(self, parent=None, settings=None):
+        super().__init__(parent)
+        self.answer = None  # None = dismissed, True = Yes, False = No
+        self.settings = settings
+
+        self.setWindowTitle("StartGuard")
+        self.setModal(True)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 16)
+        layout.setSpacing(16)
+
+        label = QLabel(
+            "Watch for new startup items — runs a quick check once a day "
+            "in the background, no popups. You'll see a note next time you "
+            "open StartGuard if anything new shows up."
+        )
+        label.setWordWrap(True)
+        layout.addWidget(label)
+
+        button_row = QHBoxLayout()
+        button_row.addStretch()
+        no_btn = QPushButton("No")
+        yes_btn = QPushButton("Yes")
+        no_btn.clicked.connect(self._on_no)
+        yes_btn.clicked.connect(self._on_yes)
+        button_row.addWidget(no_btn)
+        button_row.addWidget(yes_btn)
+        layout.addLayout(button_row)
+
+    def _on_yes(self):
+        self.answer = True
+        self.settings.set("startup_watch_enabled", True)
+
+        from startup_watch import register_startup_watch_task
+        success = register_startup_watch_task()
+        if not success:
+            # Registration failed — don't leave startup_watch_enabled=True
+            # with no actual task behind it. Reset to None (not False) so
+            # the opt-in dialog re-prompts next launch instead of silently
+            # treating this as a settled "off" the user never chose.
+            self.settings.set("startup_watch_enabled", None)
+            QMessageBox.warning(
+                self,
+                "Couldn't set up Startup Watch",
+                "StartGuard couldn't schedule the background check.\n\n"
+                "You can try turning this on again — StartGuard will ask "
+                "next time it opens."
+            )
+
+        self.accept()
+
+    def _on_no(self):
+        self.answer = False
+        self.settings.set("startup_watch_enabled", False)
+        self.accept()
+
+    def closeEvent(self, event):
+        # Title-bar X and Alt-F4 both route here. Deliberately does NOT
+        # touch self.answer — it stays None so the caller writes nothing.
+        event.accept()
+
+    def reject(self):
+        # Esc routes here via QDialog's default keyPressEvent binding.
+        # Deliberately does NOT touch self.answer — stays None.
+        super().reject()
+
+
+# ─────────────────────────────────────────────
+# Startup Watch — new-items review dialog
+# ─────────────────────────────────────────────
+
+class StartupWatchItemsDialog(QDialog):
+    """
+    Lists the new startup items Startup Watch's scheduled scan found,
+    with a single explicit "OK, got it" acknowledgment button.
+
+    Same "no blind dismiss" rule as StartupWatchOptInDialog above:
+    self.acknowledged stays False unless "OK, got it" is actually
+    clicked. closeEvent() and reject() are both overridden explicitly
+    so the title-bar X and Esc can never be mistaken for the user
+    having reviewed the list — the caller only clears
+    startup_watch_pending_items and hides the banner when
+    dialog.acknowledged is True.
+    """
+
+    def __init__(self, parent, theme, items):
+        super().__init__(parent)
+        self.acknowledged = False
+
+        from PyQt6.QtWidgets import QTextEdit
+
+        count = len(items)
+        noun = "item" if count == 1 else "items"
+        self.setWindowTitle("StartGuard — New Startup Items")
+        self.setModal(True)
+        self.resize(480, 360)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 16)
+        layout.setSpacing(12)
+
+        title = QLabel(f"{count} new startup {noun} found since your last check")
+        title.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        title.setWordWrap(True)
+        title.setStyleSheet(f"color: {theme['text_bright']};")
+        layout.addWidget(title)
+
+        list_text = QTextEdit()
+        list_text.setReadOnly(True)
+        list_text.setStyleSheet(f"""
+            QTextEdit {{
+                background: {theme['bg']};
+                color: {theme['text']};
+                border: 1px solid {theme['border_alt']};
+                border-radius: 6px;
+            }}
+        """)
+        lines = []
+        for item in items:
+            name = item.get("friendly_name") or item.get("raw_name") or "Unknown item"
+            source = item.get("source") or item.get("source_path") or "Unknown source"
+            lines.append(f"{name}  —  {source}")
+        list_text.setPlainText("\n".join(lines))
+        layout.addWidget(list_text)
+
+        ack_btn = QPushButton("OK, got it")
+        ack_btn.setFixedHeight(32)
+        ack_btn.clicked.connect(self._on_ack)
+        layout.addWidget(ack_btn)
+
+    def _on_ack(self):
+        self.acknowledged = True
+        self.accept()
+
+    def closeEvent(self, event):
+        # Title-bar X — deliberately does NOT set acknowledged.
+        event.accept()
+
+    def reject(self):
+        # Esc — deliberately does NOT set acknowledged.
+        super().reject()
+
+
+# ─────────────────────────────────────────────
 # Main Window
 # ─────────────────────────────────────────────
 
@@ -658,6 +825,71 @@ class MainWindow(QMainWindow):
         # Check for updates silently in the background
         from updater import check_for_updates
         check_for_updates("StartGuard", QApplication.instance().applicationVersion(), "StartGuard", parent=self)
+
+        self._maybe_offer_startup_watch()
+        self._refresh_startup_watch_banner()
+
+    # ─────────────────────────────────────────
+    # Startup Watch — opt-in prompt
+    # ─────────────────────────────────────────
+
+    def _maybe_offer_startup_watch(self):
+        """
+        Shows the Startup Watch opt-in prompt once, the first time the
+        app launches after this feature ships. startup_watch_enabled is
+        None only when the user has never been asked (see settings.py's
+        DEFAULT_SETTINGS) — this never re-prompts an existing True/False
+        answer. A dismissed dialog leaves it None, so it re-prompts on
+        the next launch instead of silently defaulting to off.
+        """
+        if self.settings.get("startup_watch_enabled") is not None:
+            return
+
+        dialog = StartupWatchOptInDialog(self, settings=self.settings)
+        dialog.setStyleSheet(self._stylesheet())
+        dialog.exec()
+        # dialog.answer is None on dismissal — _on_yes()/_on_no() already
+        # wrote settings (and, for Yes, triggered task registration), so
+        # there's nothing left to do here in any case.
+
+    def _refresh_startup_watch_banner(self):
+        """
+        Shows the Startup Watch banner if the last scheduled scan found
+        new items awaiting review. Reads settings directly rather than
+        caching state, so it's always safe to call again after
+        apply_theme() rebuilds the UI. The banner never clears itself —
+        only _on_view_startup_watch_items(), after the user actually
+        acknowledges the list, does that.
+        """
+        pending = self.settings.get("startup_watch_pending_items") or []
+        if pending:
+            count = len(pending)
+            noun = "item" if count == 1 else "items"
+            self.startup_watch_label.setText(f"{count} new startup {noun} found since your last check.")
+            self.startup_watch_bar.show()
+        else:
+            self.startup_watch_bar.hide()
+
+    def _on_view_startup_watch_items(self):
+        """
+        Shows the actual list of new items — the only path that can
+        clear startup_watch_pending_items and hide the banner. Closing
+        the list dialog via X/Esc without clicking "OK, got it" leaves
+        settings and the banner exactly as they were (see
+        StartupWatchItemsDialog's closeEvent()/reject() overrides).
+        """
+        pending = self.settings.get("startup_watch_pending_items") or []
+        if not pending:
+            self._refresh_startup_watch_banner()
+            return
+
+        dialog = StartupWatchItemsDialog(self, self.theme, pending)
+        dialog.setStyleSheet(self._stylesheet())
+        dialog.exec()
+
+        if dialog.acknowledged:
+            self.settings.set("startup_watch_pending_items", [])
+            self._refresh_startup_watch_banner()
 
     # ─────────────────────────────────────────
     # UI construction
@@ -724,6 +956,29 @@ class MainWindow(QMainWindow):
         """)
         self.permission_bar.hide()
         root.addWidget(self.permission_bar)
+
+        # ── Startup Watch banner ─────────────────────────────────────
+        self.startup_watch_bar = QWidget()
+        self.startup_watch_bar.setStyleSheet(f"""
+            background: {t['warning_tint_bg']};
+            border-radius: 6px;
+        """)
+        sw_row = QHBoxLayout(self.startup_watch_bar)
+        sw_row.setContentsMargins(12, 6, 12, 6)
+
+        self.startup_watch_label = QLabel("")
+        self.startup_watch_label.setStyleSheet(f"color: {t['warning']}; font-size: 11px;")
+        sw_row.addWidget(self.startup_watch_label)
+        sw_row.addStretch()
+
+        self.startup_watch_view_btn = QPushButton("View")
+        self.startup_watch_view_btn.setFixedHeight(26)
+        self.startup_watch_view_btn.setStyleSheet(self._button_style(t['btn_neutral_bg'], t['btn_neutral_hover']))
+        self.startup_watch_view_btn.clicked.connect(self._on_view_startup_watch_items)
+        sw_row.addWidget(self.startup_watch_view_btn)
+
+        self.startup_watch_bar.hide()
+        root.addWidget(self.startup_watch_bar)
 
         # ── Main split: list + detail panel ─────────────────────────
         splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -866,6 +1121,10 @@ class MainWindow(QMainWindow):
         # it — _populate_list() below would otherwise try to clean up
         # widgets that no longer exist.
         self._rows = {}
+
+        # Settings-driven, not scan-state-driven — safe to refresh
+        # unconditionally, independent of whether a scan has run yet.
+        self._refresh_startup_watch_banner()
 
         if self._items:
             self.table_header.show()
