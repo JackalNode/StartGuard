@@ -122,6 +122,19 @@ def main():
     # Crash logger goes first — catches anything that goes wrong after this point
     setup_crash_logger()
 
+    # Startup Watch's scheduled-task entry point — must exit here, before
+    # QApplication/MainWindow ever construct, and must never call
+    # request_elevation() (the task is already running elevated via its
+    # own S4U + Highest registration; ShellExecuteW "runas" here would
+    # risk popping a UAC prompt on a locked/logged-off session).
+    from startup_watch import STARTUP_WATCH_CLI_FLAG
+    if STARTUP_WATCH_CLI_FLAG in sys.argv:
+        setup_logging()
+        logging.getLogger("startguard.main").info("Startup Watch: headless scan starting")
+        from startup_watch import run_headless_scan
+        run_headless_scan()
+        sys.exit(0)
+
     check_single_instance()
 
     if sys.platform == "win32":
@@ -142,7 +155,7 @@ def main():
 
     app = QApplication(sys.argv)
     app.setApplicationName("StartGuard")
-    app.setApplicationVersion("1.0.1")
+    app.setApplicationVersion("1.1.0")
     app.setOrganizationName("JackalNode")
 
     # ── Initialise components ──────────────────────────────────────

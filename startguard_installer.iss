@@ -8,10 +8,20 @@
 ;   4. Your installer will appear in the Output folder below
 
 #define AppName "StartGuard"
-#define AppVersion "1.0.1"
+#define AppVersion "1.1.0"
 #define AppPublisher "JackalNode"
 #define AppURL "https://jackalnode.com"
 #define AppExeName "StartGuard.exe"
+
+; --- Startup Watch scheduled task name --------------------------------
+; SYNC WARNING: this must be kept identical to STARTUP_WATCH_TASK_NAME
+; defined in startup_watch.py (currently "StartGuard_StartupWatch",
+; see that file's line ~26). Inno Setup scripts cannot import Python
+; constants, so this is a deliberate, flagged duplicate rather than a
+; silent one. If STARTUP_WATCH_TASK_NAME ever changes in startup_watch.py,
+; this value MUST be updated to match or the uninstaller will silently
+; fail to unregister the task.
+#define StartupWatchTaskName "StartGuard_StartupWatch"
 
 ; IMPORTANT: Update this path to match where PyInstaller put your build
 ; After running pyinstaller startguard.spec, the built files will be here:
@@ -127,4 +137,34 @@ begin
   end
   else
     Result := True;
+end;
+
+// Runs during uninstall, at the usUninstall step — this fires BEFORE Inno's
+// own built-in deletion of the [UninstallDelete] entries (app folder,
+// AppData) and the [Registry] uninsdeletekey entry above, which together
+// are the rest of the "full wipe on uninstall" set documented in
+// StartGuard_Context.md's Confirmed Architecture Decisions. A scheduled
+// task lives outside all three of those scopes (filesystem/AppData/
+// registry), so it needs this separate explicit step — see
+// StartGuard_Context.md's Startup Watch section (Session 26) for why.
+//
+// TASK NAME SYNC WARNING: '{#StartupWatchTaskName}' is a hardcoded copy of
+// STARTUP_WATCH_TASK_NAME from startup_watch.py. See the #define above for
+// details — keep both in sync by hand if that constant ever changes.
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  ResultCode: Integer;
+begin
+  if CurUninstallStep = usUninstall then
+  begin
+    // Startup Watch is opt-in and off by default, so most users never
+    // registered this task at all. schtasks exits non-zero when the task
+    // doesn't exist — that is the expected, normal case for those users,
+    // not an error, so the exit code is deliberately ignored (no
+    // CheckExitCode-style guard, no MsgBox on failure). /f suppresses
+    // schtasks' own "are you sure" confirmation prompt.
+    Exec(ExpandConstant('{sys}\schtasks.exe'),
+      '/delete /tn "{#StartupWatchTaskName}" /f', '',
+      SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  end;
 end;
