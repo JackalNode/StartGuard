@@ -46,7 +46,10 @@ DEFAULT_SETTINGS = {
     "claude_api_key":         "",      # Optional — user supplies their own Claude API key (tier 2)
     "virustotal_api_key":     "",      # Optional — user supplies their free VT key
     "show_safe_items":        True,
-    "version":                "1.0.1",
+    "version":                "1.1.0",
+    "startup_watch_enabled":       None,  # None = never asked; True/False once user answers install-time prompt
+    "startup_watch_baseline":      None,  # last saved scan snapshot for diffing; None = no baseline yet
+    "startup_watch_pending_items": [],    # items found by the last scheduled scan, awaiting user review
 }
 
 
