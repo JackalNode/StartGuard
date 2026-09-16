@@ -719,29 +719,40 @@ class StartupWatchOptInDialog(QDialog):
 
 class StartupWatchItemsDialog(QDialog):
     """
-    Lists the new startup items Startup Watch's scheduled scan found,
-    with a single explicit "OK, got it" acknowledgment button.
+    Lists the new startup items Startup Watch's scheduled scan found, as
+    a checkable per-item list (name, source, safety indicator), with two
+    distinct ways to close it out:
+
+      - "OK, got it": acknowledges the whole list at once. Unchanged
+        behavior from before this dialog grew checkboxes — it only ever
+        sets self.acknowledged = True.
+      - "Add Checked to Baseline": a separate, secondary action for
+        marking specific reviewed-and-legitimate items so they stop
+        being flagged. It sets self.baseline_action_keys instead of
+        self.acknowledged, so the caller can tell the two outcomes
+        apart and act on only the items actually checked.
 
     Same "no blind dismiss" rule as StartupWatchOptInDialog above:
-    self.acknowledged stays False unless "OK, got it" is actually
-    clicked. closeEvent() and reject() are both overridden explicitly
-    so the title-bar X and Esc can never be mistaken for the user
-    having reviewed the list — the caller only clears
-    startup_watch_pending_items and hides the banner when
-    dialog.acknowledged is True.
+    both self.acknowledged and self.baseline_action_keys stay at their
+    do-nothing defaults (False / None) unless one of those two buttons
+    is actually clicked through to completion. closeEvent() and
+    reject() are both overridden explicitly so the title-bar X and Esc
+    can never be mistaken for either outcome.
     """
 
     def __init__(self, parent, theme, items):
         super().__init__(parent)
         self.acknowledged = False
+        self.baseline_action_keys = None
+        self.theme = theme
 
-        from PyQt6.QtWidgets import QTextEdit
+        from PyQt6.QtWidgets import QListWidget, QListWidgetItem, QCheckBox
 
         count = len(items)
         noun = "item" if count == 1 else "items"
         self.setWindowTitle("StartGuard — New Startup Items")
         self.setModal(True)
-        self.resize(480, 360)
+        self.resize(520, 400)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 16)
@@ -753,39 +764,136 @@ class StartupWatchItemsDialog(QDialog):
         title.setStyleSheet(f"color: {theme['text_bright']};")
         layout.addWidget(title)
 
-        list_text = QTextEdit()
-        list_text.setReadOnly(True)
-        list_text.setStyleSheet(f"""
-            QTextEdit {{
+        list_widget = QListWidget()
+        list_widget.setStyleSheet(f"""
+            QListWidget {{
                 background: {theme['bg']};
                 color: {theme['text']};
                 border: 1px solid {theme['border_alt']};
                 border-radius: 6px;
             }}
+            QListWidget::item {{
+                border-bottom: 1px solid {theme['border_alt']};
+            }}
         """)
-        lines = []
+
+        # (checkbox, key) pairs — read back in _on_add_checked() to find
+        # out which items the user actually checked.
+        self._row_checkboxes = []
+
         for item in items:
             name = item.get("friendly_name") or item.get("raw_name") or "Unknown item"
             source = item.get("source") or item.get("source_path") or "Unknown source"
-            lines.append(f"{name}  —  {source}")
-        list_text.setPlainText("\n".join(lines))
-        layout.addWidget(list_text)
+            rating = item.get("safety_rating", "unknown")
+            key = item.get("key")
+
+            row = QWidget()
+            row_layout = QHBoxLayout(row)
+            row_layout.setContentsMargins(8, 6, 8, 6)
+            row_layout.setSpacing(10)
+
+            checkbox = QCheckBox()
+            # Pre-check only items already known safe — "unknown" and
+            # "watch_out" items require the user to actively opt them in.
+            checkbox.setChecked(rating == "safe")
+            row_layout.addWidget(checkbox)
+
+            name_label = QLabel(name)
+            name_label.setStyleSheet(f"color: {theme['text']};")
+            row_layout.addWidget(name_label)
+
+            source_label = QLabel(f"— {source}")
+            source_label.setStyleSheet(f"color: {theme['label_secondary']};")
+            row_layout.addWidget(source_label)
+
+            row_layout.addStretch()
+
+            badge = QLabel(RATING_LABELS.get(rating, "Unknown"))
+            badge.setStyleSheet(f"color: {rating_color(rating, theme)}; font-weight: 600;")
+            row_layout.addWidget(badge)
+
+            list_item = QListWidgetItem()
+            list_item.setSizeHint(row.sizeHint())
+            list_widget.addItem(list_item)
+            list_widget.setItemWidget(list_item, row)
+
+            self._row_checkboxes.append((checkbox, key))
+
+        layout.addWidget(list_widget)
+
+        button_row = QHBoxLayout()
+        button_row.addStretch()
+
+        baseline_btn = QPushButton("Add Checked to Baseline")
+        baseline_btn.setFixedHeight(32)
+        baseline_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {theme['surface']};
+                color: {theme['label_secondary']};
+                border: 1px solid {theme['border_alt']};
+                border-radius: 6px;
+                padding: 4px 14px;
+                font-size: 11px;
+            }}
+            QPushButton:hover {{ background: {theme['surface_hover']}; }}
+        """)
+        baseline_btn.clicked.connect(self._on_add_checked)
+        button_row.addWidget(baseline_btn)
 
         ack_btn = QPushButton("OK, got it")
         ack_btn.setFixedHeight(32)
+        ack_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {theme['accent']};
+                color: #ffffff;
+                border: none;
+                border-radius: 6px;
+                padding: 4px 14px;
+                font-size: 11px;
+                font-weight: 600;
+            }}
+        """)
         ack_btn.clicked.connect(self._on_ack)
-        layout.addWidget(ack_btn)
+        button_row.addWidget(ack_btn)
+
+        layout.addLayout(button_row)
 
     def _on_ack(self):
         self.acknowledged = True
         self.accept()
 
+    def _on_add_checked(self):
+        checked_keys = [key for checkbox, key in self._row_checkboxes if checkbox.isChecked()]
+        if not checked_keys:
+            return
+
+        confirm = QMessageBox(self)
+        confirm.setWindowTitle("Add Checked to Baseline")
+        confirm.setText(
+            "These items will stop being flagged as new in future scans. "
+            "Only continue if you're sure they're legitimate."
+        )
+        confirm.setStandardButtons(QMessageBox.StandardButton.Cancel | QMessageBox.StandardButton.Yes)
+        confirm.button(QMessageBox.StandardButton.Yes).setText("Add to Baseline")
+        confirm.setDefaultButton(QMessageBox.StandardButton.Cancel)
+        confirm.setStyleSheet(f"""
+            QMessageBox {{ background: {self.theme['surface']}; }}
+            QMessageBox QLabel {{ color: {self.theme['text']}; }}
+        """)
+        if confirm.exec() != QMessageBox.StandardButton.Yes:
+            return
+
+        self.baseline_action_keys = checked_keys
+        self.accept()
+
     def closeEvent(self, event):
-        # Title-bar X — deliberately does NOT set acknowledged.
+        # Title-bar X — deliberately does NOT set acknowledged or
+        # baseline_action_keys.
         event.accept()
 
     def reject(self):
-        # Esc — deliberately does NOT set acknowledged.
+        # Esc — deliberately does NOT set acknowledged or
+        # baseline_action_keys.
         super().reject()
 
 
@@ -873,10 +981,18 @@ class MainWindow(QMainWindow):
     def _on_view_startup_watch_items(self):
         """
         Shows the actual list of new items — the only path that can
-        clear startup_watch_pending_items and hide the banner. Closing
-        the list dialog via X/Esc without clicking "OK, got it" leaves
+        touch startup_watch_pending_items and hide the banner. Closing
+        the list dialog via X/Esc without clicking either button leaves
         settings and the banner exactly as they were (see
         StartupWatchItemsDialog's closeEvent()/reject() overrides).
+
+        Two independent outcomes, checked separately since either (or
+        neither, on X/Esc) can have happened:
+          - baseline_action_keys: only the checked items are folded into
+            startup_watch_baseline and cleared from pending; the rest
+            stay pending for next time.
+          - acknowledged: the original "OK, got it" behavior — clears
+            all of startup_watch_pending_items unconditionally.
         """
         pending = self.settings.get("startup_watch_pending_items") or []
         if not pending:
@@ -886,6 +1002,16 @@ class MainWindow(QMainWindow):
         dialog = StartupWatchItemsDialog(self, self.theme, pending)
         dialog.setStyleSheet(self._stylesheet())
         dialog.exec()
+
+        if dialog.baseline_action_keys:
+            baseline = self.settings.get("startup_watch_baseline") or []
+            merged_baseline = sorted(set(baseline) | set(dialog.baseline_action_keys))
+            self.settings.set("startup_watch_baseline", merged_baseline)
+
+            checked_keys = set(dialog.baseline_action_keys)
+            remaining_pending = [item for item in pending if item.get("key") not in checked_keys]
+            self.settings.set("startup_watch_pending_items", remaining_pending)
+            self._refresh_startup_watch_banner()
 
         if dialog.acknowledged:
             self.settings.set("startup_watch_pending_items", [])

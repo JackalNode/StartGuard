@@ -104,6 +104,8 @@ def compare_to_baseline(scanner: StartupScanner, scan_result: ScanResult, baseli
                 "friendly_name": item.friendly_name,
                 "source": item.source,
                 "source_path": item.source_path,
+                "safety_rating": item.safety_rating,
+                "safe_to_disable": item.safe_to_disable,
             })
 
     if new_items:
