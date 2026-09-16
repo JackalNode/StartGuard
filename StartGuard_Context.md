@@ -5,6 +5,7 @@
 > fixed (11 previously-invisible startup items restored, including MSI
 > Afterburner and RTSS), Discord/Edge disable fix re-verified post-reinstall
 > (not a regression), in-app License viewer added, LICENSE.txt updated.
+> Last updated: v1.1.0 shipped — Startup Watch feature fully built, live-verified end to end, tagged and released to GitHub Releases and itch.io, devlog posted (27 Jul 2026).
 
 ---
 
@@ -549,8 +550,10 @@ untouched, confirmed live), and the complete install → task-exists →
 uninstall → task-gone cycle via a real compiled installer, not just
 source-run testing.
 
-**Shipping as v1.1.0** (bumped in `main.py`, `startguard_installer.iss`,
-and `settings.py`) — not yet tagged or released as of this doc update.
+**Shipped as v1.1.0** (bumped in `main.py`, `startguard_installer.iss`,
+and `settings.py`) — tagged and released 27 Jul 2026: GitHub Release
+published (`v1.1.0`, installer `StartGuard_Setup_v1.1.0.exe` attached,
+marked Latest), itch.io page updated, devlog posted.
 
 ---
 
@@ -630,7 +633,7 @@ plus "any other free JackalNode application," em dash standardized,
 footer dated 22.07.2026. StartGuard's copy applied, verified rendering
 correctly in the running app's Settings → License section (in-app
 viewer reads it verbatim at runtime, confirmed working), committed and
-pushed to GitHub as a plain commit — **not tagged, no version bump, no
-GitHub Release** — staged and ready to ship with the next real release.
+pushed to GitHub as a plain commit, then shipped as part of the v1.1.0
+release (tagged and published to GitHub Releases 27 Jul 2026).
 PingGuard's copy updated separately by the dev in that project's own
 folder, following the same verify-then-commit sequence.
