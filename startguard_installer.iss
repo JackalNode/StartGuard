@@ -8,7 +8,7 @@
 ;   4. Your installer will appear in the Output folder below
 
 #define AppName "StartGuard"
-#define AppVersion "1.1.0"
+#define AppVersion "1.1.1"
 #define AppPublisher "JackalNode"
 #define AppURL "https://jackalnode.com"
 #define AppExeName "StartGuard.exe"
