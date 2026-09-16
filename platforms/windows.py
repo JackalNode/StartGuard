@@ -433,10 +433,8 @@ def read_task_manager_startup() -> list:
                 if isinstance(data, bytes) and len(data) > 0:
                     enabled = data[0] == 2
 
-                exe_name = _parse_exe_name(name) or name
-
                 item = StartupItem(
-                    raw_name=exe_name,
+                    raw_name=name,
                     friendly_name=name,
                     description="",
                     publisher="Unknown",
@@ -445,7 +443,7 @@ def read_task_manager_startup() -> list:
                     registry_hive=registry_hive,
                     safety_rating="unknown",
                     safe_to_disable=False,
-                    is_system_critical=_is_system_critical(exe_name),
+                    is_system_critical=_is_system_critical(name),
                     boot_impact="minimal",
                     enabled=enabled,
                     command=name,

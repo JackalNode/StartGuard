@@ -492,7 +492,15 @@ class StartupScanner:
         if name.endswith(".exe"):
             name = name[:-4]
         # Apply alias — map to canonical name
-        return self.DEDUP_ALIASES.get(name, name)
+        aliased = self.DEDUP_ALIASES.get(name, name)
+        if aliased == name and " " in name:
+            # raw_name may be a full multi-word label (e.g. "Adobe Acrobat
+            # Update Task") rather than a single parsed exe name — fall
+            # back to matching the alias table on just the first word.
+            first_word_aliased = self.DEDUP_ALIASES.get(name.split()[0], name)
+            if first_word_aliased != name:
+                aliased = first_word_aliased
+        return aliased
 
     def _deduplicate(self, items: list) -> list:
         """
