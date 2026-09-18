@@ -406,6 +406,25 @@ class DetailPanel(QWidget):
         self.re_enabled_warning.hide()
         content_layout.addWidget(self.re_enabled_warning)
 
+        # Scheduled task banner (hidden by default) — separate from and
+        # below the safety-rating badge above, since it's about the toggle
+        # mechanism, not the item's safety.
+        self.scheduled_task_banner = QLabel(
+            "This is a Windows Scheduled Task, not a standard startup entry. "
+            "Some apps manage this setting themselves — if it turns back on "
+            "after disabling, check the app's own settings too."
+        )
+        self.scheduled_task_banner.setWordWrap(True)
+        self.scheduled_task_banner.setStyleSheet(f"""
+            background: {self.theme['surface_alt']};
+            color: {self.theme['label_secondary']};
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 10px;
+        """)
+        self.scheduled_task_banner.hide()
+        content_layout.addWidget(self.scheduled_task_banner)
+
         # Metadata section
         meta_frame = QFrame()
         meta_frame.setStyleSheet(f"background: {self.theme['bg']}; border-radius: 6px;")
@@ -478,6 +497,9 @@ class DetailPanel(QWidget):
 
         # Re-enabled warning
         self.re_enabled_warning.setVisible(item.re_enabled_detected)
+
+        # Scheduled task banner — shown regardless of safety rating
+        self.scheduled_task_banner.setVisible(item.source == "scheduled_task")
 
         # Metadata
         self.publisher_label.setText(item.publisher or "Unknown")
@@ -1510,17 +1532,44 @@ class MainWindow(QMainWindow):
         Shows confirmation for unknown items before acting.
         Hard blocked items never reach here (toggle button is disabled).
         """
+        # Caveat appended to any confirmation dialog for a scheduled task,
+        # on both the disable and enable path — some apps manage their own
+        # task's enabled state, so a StartGuard toggle (in either direction)
+        # can silently fail to stick if the app re-asserts it afterwards.
+        scheduled_task_caveat = (
+            "<br><br>This is a Windows Scheduled Task, not a standard startup entry. "
+            "Some apps manage this setting themselves — if it turns back on after "
+            "disabling, check the app's own settings too."
+        )
+
         # Confirmation for unknown items being disabled
         if not new_enabled and item.safety_rating == "unknown":
+            message = (
+                f"<b>{item.friendly_name}</b><br><br>"
+                f"StartGuard doesn't recognise this item, so it can't confirm it's safe to disable.<br><br>"
+                f"You can turn it back on any time."
+            )
+            if item.source == "scheduled_task":
+                message += scheduled_task_caveat
             approved = self._ask_approval(
                 "Are you sure?",
-                (
-                    f"<b>{item.friendly_name}</b><br><br>"
-                    f"StartGuard doesn't recognise this item, so it can't confirm it's safe to disable.<br><br>"
-                    f"You can turn it back on any time."
-                ),
+                message,
                 approve_text="Disable anyway",
                 decline_text="Keep it on",
+            )
+            if not approved:
+                return
+
+        # Confirmation for any other scheduled task toggle (disable or
+        # enable) — not gated on safety rating, since this is about the
+        # toggle mechanism, not whether the item is safe.
+        elif item.source == "scheduled_task":
+            action_word = "Turn this scheduled task back on" if new_enabled else "Turn off this scheduled task"
+            approved = self._ask_approval(
+                "Are you sure?",
+                f"<b>{item.friendly_name}</b><br><br>{action_word}?{scheduled_task_caveat}",
+                approve_text="Enable" if new_enabled else "Disable",
+                decline_text="Cancel",
             )
             if not approved:
                 return

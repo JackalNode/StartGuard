@@ -10,13 +10,18 @@ Every action is:
 Security rules:
   - Never deletes registry keys or values — only modifies enabled/disabled state
   - Never touches is_system_critical items — hard blocked, no exceptions
-  - Never runs shell commands or subprocesses to make changes
-  - All writes go through winreg directly — no third-party libraries
+  - All writes go through winreg directly — no third-party libraries, with
+    one exception: scheduled tasks are toggled via schtasks.exe rather than
+    a direct file edit. Task Scheduler keeps its own live enabled/disabled
+    state in a registry-backed cache separate from the on-disk task XML, so
+    editing the XML's <Enabled> value alone doesn't reliably take effect —
+    schtasks.exe is the only way to update both consistently.
 """
 
 import sys
 import logging
 import json
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from dataclasses import dataclass
@@ -444,38 +449,75 @@ class StartupToggle:
     # ── Scheduled Tasks ───────────────────────────────────────────────
 
     def _toggle_scheduled_task(self, item: StartupItem, enable: bool) -> ToggleResult:
-        """Modify the <Enabled> element in the task XML. Never deletes the file."""
-        import xml.etree.ElementTree as ET
-        TASK_NS = "{http://schemas.microsoft.com/windows/2004/02/mit/task}"
-
+        """
+        Enable/disable via `schtasks /Change /TN <folder-qualified name> /ENABLE|/DISABLE`.
+        Never edits the task XML directly — see this file's top docstring for why.
+        """
         task_path = Path(item.source_path)
         action_word = "enabled" if enable else "disabled"
 
-        if not task_path.exists():
+        task_name = self._task_scheduler_name(task_path)
+        if task_name is None:
             return ToggleResult(
                 success=False, action="failed", item_name=item.friendly_name,
-                message=f"StartGuard couldn't find the task file for {item.friendly_name}. It may have already been removed.",
-                error=f"Task file not found: {task_path}",
+                message=f"StartGuard couldn't identify the scheduled task for {item.friendly_name}.",
+                error=f"Could not derive Task Scheduler path from: {task_path}",
             )
 
-        ET.register_namespace("", "http://schemas.microsoft.com/windows/2004/02/mit/task")
-        tree = ET.parse(task_path)
-        root = tree.getroot()
-
-        settings = root.find(f"{TASK_NS}Settings")
-        if settings is None:
+        try:
+            result = subprocess.run(
+                ["schtasks", "/Change", "/TN", task_name, "/ENABLE" if enable else "/DISABLE"],
+                capture_output=True, text=True, timeout=15,
+                creationflags=subprocess.CREATE_NO_WINDOW,
+            )
+        except Exception as e:
             return ToggleResult(
                 success=False, action="failed", item_name=item.friendly_name,
-                message=f"StartGuard couldn't modify {item.friendly_name} — the task file format wasn't recognised.",
-                error="No <Settings> element in task XML",
+                message=f"Something went wrong {'enabling' if enable else 'disabling'} {item.friendly_name}. No changes were made.",
+                error=str(e),
             )
 
-        enabled_elem = settings.find(f"{TASK_NS}Enabled")
-        if enabled_elem is None:
-            enabled_elem = ET.SubElement(settings, f"{TASK_NS}Enabled")
+        if result.returncode != 0:
+            stderr = (result.stderr or "").strip()
 
-        enabled_elem.text = "true" if enable else "false"
-        tree.write(str(task_path), encoding="unicode", xml_declaration=True)
+            if enable:
+                if "access is denied" in stderr.lower():
+                    return ToggleResult(
+                        success=False, action="failed", item_name=item.friendly_name,
+                        message=(
+                            f"StartGuard couldn't re-enable {item.friendly_name} — "
+                            f"Windows needs administrator permission for this one. "
+                            f"Try running StartGuard as administrator."
+                        ),
+                        error=stderr,
+                    )
+
+                return ToggleResult(
+                    success=False, action="failed", item_name=item.friendly_name,
+                    message=(
+                        f"StartGuard couldn't find this task to re-enable it — "
+                        f"{item.friendly_name} may have removed its own registration. "
+                        f"Try turning it back on from the app's own settings."
+                    ),
+                    error=stderr,
+                )
+
+            if "access is denied" in stderr.lower():
+                return ToggleResult(
+                    success=False, action="failed", item_name=item.friendly_name,
+                    message=(
+                        f"StartGuard couldn't disable {item.friendly_name} — "
+                        f"Windows needs administrator permission for this one. "
+                        f"Try running StartGuard as administrator."
+                    ),
+                    error=stderr,
+                )
+
+            return ToggleResult(
+                success=False, action="failed", item_name=item.friendly_name,
+                message=f"StartGuard couldn't disable {item.friendly_name}.",
+                error=stderr,
+            )
 
         return ToggleResult(
             success=True,
@@ -488,6 +530,20 @@ class StartupToggle:
                    "It will no longer run at startup. You can turn it back on any time.")
             ),
         )
+
+    @staticmethod
+    def _task_scheduler_name(task_path: Path) -> str | None:
+        """
+        Task Scheduler names a task by its folder-qualified path relative to
+        System32\\Tasks, not the file stem — e.g. a file at
+        ...\\Tasks\\MSI Afterburner\\MSIAfterburner Startup is task
+        \\MSI Afterburner\\MSIAfterburner Startup.
+        """
+        parts = task_path.parts
+        tasks_idx = next((i for i, p in enumerate(parts) if p.lower() == "tasks"), None)
+        if tasks_idx is None or tasks_idx + 1 >= len(parts):
+            return None
+        return "\\" + "\\".join(parts[tasks_idx + 1:])
 
     # ── Startup Folder ────────────────────────────────────────────────
 
